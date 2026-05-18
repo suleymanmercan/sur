@@ -18,7 +18,6 @@ jobs:
                   go-version: "1.22"
 
             - name: Build binaries
-              working-directory: sur
               run: |
                   GOOS=linux GOARCH=amd64 go build -o ../sur-linux-amd64 .
                   GOOS=linux GOARCH=arm64 go build -o ../sur-linux-arm64 .
