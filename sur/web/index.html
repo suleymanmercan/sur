@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sur — Linux hardening, with consent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#11161d; --line:#1f2a37; --ink:#e6edf3; --dim:#8b949e;
+    --acc:#f28c28; --ok:#7ce38b; --warn:#ffbf00; --bad:#f25f5c; --indigo:#7aa2f7;
+    --serif:'Fraunces',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);line-height:1.6;}
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:
+      radial-gradient(800px 400px at 80% -10%,rgba(242,140,40,.12),transparent 60%),
+      radial-gradient(600px 600px at -10% 60%,rgba(122,162,247,.08),transparent 70%);
+    z-index:0;
+  }
+  main{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:64px 28px 96px;}
+  nav{display:flex;align-items:center;gap:24px;font-size:14px;color:var(--dim);}
+  nav strong{color:var(--ink);font-family:var(--serif);font-size:22px;letter-spacing:.5px}
+  nav a{color:var(--dim);text-decoration:none}
+  nav a:hover{color:var(--acc)}
+  .hero{margin:80px 0 56px;}
+  .tag{display:inline-block;color:var(--acc);font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px;border:1px solid var(--acc);padding:4px 10px;border-radius:999px}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(40px,6vw,72px);line-height:1.05;margin:0 0 22px;letter-spacing:-1px}
+  h1 em{font-style:italic;color:var(--acc)}
+  .lede{font-size:18px;color:var(--dim);max-width:640px}
+  .cta{margin-top:36px;display:flex;gap:16px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:8px;font-weight:600;text-decoration:none;transition:transform .15s,background .15s}
+  .btn-primary{background:var(--acc);color:#1b1004}
+  .btn-primary:hover{transform:translateY(-1px);background:#ffa244}
+  .btn-ghost{border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--acc);color:var(--acc)}
+  section{margin:80px 0;}
+  h2{font-family:var(--serif);font-size:28px;margin:0 0 18px;letter-spacing:-.5px}
+  h2 .num{color:var(--dim);font-family:var(--mono);font-size:13px;margin-right:14px;vertical-align:middle}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;transition:border-color .15s,transform .15s}
+  .card:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .card h3{margin:0 0 8px;color:var(--acc);font-family:var(--mono);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+  .card p{margin:0;color:var(--dim);font-size:14px}
+  pre{background:#0a0f15;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:18px 20px;overflow-x:auto;font-size:13.5px;color:#cdd9e5}
+  .term{background:#0a0f15;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .term-head{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:#11161d}
+  .term-head span{width:11px;height:11px;border-radius:50%}
+  .dot-r{background:#f25f5c}.dot-y{background:#ffbf00}.dot-g{background:#7ce38b}
+  .term-body{padding:18px 22px;font-size:13.5px;line-height:1.7;white-space:pre;overflow-x:auto}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .dim{color:var(--dim)} .ink{color:var(--ink)} .ac{color:var(--acc)}
+  .lifecycle{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:8px;font-family:var(--mono);font-size:13px}
+  .lifecycle span{padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}
+  .lifecycle .arrow{border:none;background:none;color:var(--acc)}
+  footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  ::selection{background:var(--acc);color:#1b1004}
+</style>
+</head>
+<body>
+<main>
+
+<nav>
+  <strong>sur</strong>
+  <a href="#what">what</a>
+  <a href="#commands">commands</a>
+  <a href="#lifecycle">lifecycle</a>
+  <a href="#tasks">tasks</a>
+  <a href="https://github.com">github</a>
+</nav>
+
+<section class="hero">
+  <div class="tag">Linux hardening CLI · v0.1</div>
+  <h1>Harden the box.<br><em>Show your work.</em></h1>
+  <p class="lede">
+    <code>sur</code> is a single-binary, interactive hardening tool for fresh Linux
+    servers. Audit, pick fixes in a TUI, apply with per-task backup + rollback,
+    and keep every session in SQLite — so you can prove what changed and undo it
+    when something breaks.
+  </p>
+  <div class="cta">
+    <a class="btn btn-primary" href="#commands">→ get started</a>
+    <a class="btn btn-ghost" href="#lifecycle">how it works</a>
+  </div>
+</section>
+
+<section id="what">
+  <h2><span class="num">01</span>Why another hardening tool</h2>
+  <div class="grid">
+    <div class="card"><h3>consent-first</h3><p>Every change is shown, checked, and approved before it touches the system.</p></div>
+    <div class="card"><h3>reversible</h3><p>Each task backs up its config and registers a rollback. One command undoes a whole session.</p></div>
+    <div class="card"><h3>auditable</h3><p>SQLite at <code>/var/lib/sur/sur.db</code>: every session, every task, every backup blob.</p></div>
+    <div class="card"><h3>static binary</h3><p>Pure-Go SQLite driver (<code>modernc.org/sqlite</code>) → no CGO, no dependencies, one file deploy.</p></div>
+  </div>
+</section>
+
+<section id="commands">
+  <h2><span class="num">02</span>The four verbs</h2>
+  <pre>$ sur check                  <span class="dim"># built-in audit + score</span>
+$ sur check --deep --json    <span class="dim"># merge with lynis, machine output</span>
+$ sur harden                 <span class="dim"># Bubble Tea TUI: pick &amp; apply</span>
+$ sur harden --dry-run       <span class="dim"># preview without touching anything</span>
+$ sur harden --yes           <span class="dim"># CI / headless</span>
+$ sur rollback &lt;session&gt;     <span class="dim"># reverse a previous run</span>
+$ sur history                <span class="dim"># list past sessions</span></pre>
+</section>
+
+<section>
+  <h2><span class="num">03</span>What <code>sur check</code> looks like</h2>
+  <div class="term">
+    <div class="term-head"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+<div class="term-body"><span class="ok">sur check</span>
+<span class="dim">host: Debian GNU/Linux 12 (bookworm) · pkg: apt</span>
+
+STATUS   ID                  TITLE
+──────────────────────────────────────────────────────────────────
+<span class="bad">FAIL</span>     ssh.root_login      SSH root login is allowed
+         <span class="dim">→ Set 'PermitRootLogin no' in /etc/ssh/sshd_config</span>
+<span class="bad">FAIL</span>     ssh.password_auth   SSH password authentication is enabled
+<span class="warn">WARN</span>     ssh.port            SSH listens on default port 22
+<span class="bad">FAIL</span>     firewall.none       No active host firewall detected
+<span class="bad">FAIL</span>     fail2ban.installed  fail2ban not installed
+<span class="bad">FAIL</span>     updates.auto        Automatic security updates not configured
+<span class="ok">PASS</span>     ports.listening     4 listening sockets
+<span class="ok">PASS</span>     sudo.nopasswd       No NOPASSWD entries in sudoers
+
+<span class="warn">Score: 43/100   Issues: 6</span>
+<span class="dim">Run `sur harden` to fix interactively.</span></div>
+  </div>
+</section>
+
+<section id="lifecycle">
+  <h2><span class="num">04</span>The task lifecycle</h2>
+  <p class="lede" style="font-size:15px">Every task runs the same five-step state machine — and if any step fails, <em>only that task</em> is rolled back. The rest of the run continues.</p>
+  <div class="lifecycle">
+    <span>pre_check</span><span class="arrow">→</span>
+    <span>backup</span><span class="arrow">→</span>
+    <span>exec</span><span class="arrow">→</span>
+    <span>post_check</span><span class="arrow">→</span>
+    <span style="border-color:var(--acc);color:var(--acc)">rollback (on error)</span>
+  </div>
+</section>
+
+<section id="tasks">
+  <h2><span class="num">05</span>A task is just YAML</h2>
+  <pre><span class="ac">id</span>: disable_root_ssh
+<span class="ac">name</span>: "Disable SSH root login"
+<span class="ac">rollback_possible</span>: true
+<span class="ac">backup_files</span>: [/etc/ssh/sshd_config]
+<span class="ac">risk_level</span>: low
+<span class="ac">distros</span>: [ubuntu, debian, rocky, alma, fedora]
+
+<span class="ac">pre_check</span>:
+  command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
+  expect_exit: 0
+<span class="ac">exec</span>:
+  - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2&gt;/dev/null || systemctl restart sshd"
+<span class="ac">post_check</span>:
+  command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
+  expect_exit: 0
+<span class="ac">rollback</span>:
+  - command: "cp {backup_path} /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2&gt;/dev/null || systemctl restart sshd"</pre>
+  <p class="lede" style="font-size:14px;margin-top:14px"><code>{backup_path}</code> is substituted at rollback time with the file <code>sur</code> backed up before applying.</p>
+</section>
+
+<footer>
+  <span>sur · linux hardening with consent</span>
+  <span>built with Go · cobra · bubbletea · lipgloss · modernc/sqlite</span>
+</footer>
+
+</main>
+</body>
+</html>

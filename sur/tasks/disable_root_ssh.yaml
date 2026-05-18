@@ -1,0 +1,24 @@
+id: disable_root_ssh
+name: "Disable SSH root login"
+description: "Sets PermitRootLogin no in /etc/ssh/sshd_config and restarts sshd."
+rollback_possible: true
+backup_files:
+  - /etc/ssh/sshd_config
+risk_level: low
+distros: [ubuntu, debian, rocky, alma, fedora]
+
+pre_check:
+  command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
+  expect_exit: 0
+
+exec:
+  - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
+
+post_check:
+  command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
+  expect_exit: 0
+
+rollback:
+  - command: "cp {backup_path} /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
