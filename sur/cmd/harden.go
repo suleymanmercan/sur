@@ -50,7 +50,7 @@ var hardenCmd = &cobra.Command{
 		    return err
 		}
 		if len(tasks) == 0 {
-			return fmt.Errorf("no tasks found in %s")
+			return fmt.Errorf("no tasks found")
 		}
 
 		s, err := store.Open(stateFile)

@@ -3,6 +3,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,7 +27,7 @@ var (
 // canceled=true when the user pressed q/esc.
 func Run(tasks []engine.Task) (selected []engine.Task, canceled bool, err error) {
 	m := initialModel(tasks)
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithInput(os.Stdin), tea.WithOutput(os.Stderr))
 	out, err := p.Run()
 	if err != nil {
 		return nil, false, err
