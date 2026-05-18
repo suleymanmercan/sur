@@ -1,49 +1,64 @@
 # sur
 
-> Interactive Linux/VPS hardening CLI — audit, pick fixes in a TUI, apply with backup + rollback.
+Interactive Linux/VPS hardening CLI: audit a host, select fixes in a TUI, apply them with backups, and roll back failed or unwanted changes.
 
-`sur` is a single-binary Go tool aimed at developers spinning up a fresh server
-and small DevOps teams who want to say:
+`sur` is a single-binary Go tool for developers provisioning fresh Linux servers and small DevOps teams that want controlled hardening without opaque automation.
 
-> "Harden my box — but show me what changed, let me approve it, and let me
-> roll it back if something breaks."
+> Harden the server, show exactly what changed, require approval, and allow rollback if something breaks.
 
-## Highlights
+## Features
 
-- **`sur check`** — built-in audit (SSH, firewall, fail2ban, unattended-upgrades,
-  listening ports, sudoers). Optional Lynis integration via `--deep`.
-- **`sur harden`** — Bubble Tea TUI: pick tasks with checkboxes, apply with
-  per-task backup → exec → post-check → rollback lifecycle.
-- **State in SQLite** (`modernc.org/sqlite`, pure-Go, static binary) at
-  `/var/lib/sur/sur.db`. Every session and task execution is recorded.
-- **`sur rollback <session-id>`** — undo a previous run, in reverse order.
-- **`sur history`** — list past sessions.
-- **`--json`** on every command for CI pipelines.
-- **`--dry-run`** to preview changes without touching the system.
+- `sur check`
+  - Runs the built-in security audit.
+  - Checks SSH configuration, firewall status, fail2ban, unattended upgrades, listening ports, and sudoers configuration.
+  - Can run a deeper Lynis scan with `--deep`.
+- `sur harden`
+  - Opens an interactive Bubble Tea TUI.
+  - Lets you select hardening tasks with checkboxes.
+  - Runs each task through backup, execution, post-check validation, and rollback-on-failure steps.
+- SQLite state tracking
+  - Uses `modernc.org/sqlite`, so the binary stays CGO-free.
+  - Stores sessions, task executions, rollback metadata, and audit history.
+  - Defaults to `/var/lib/sur/sur.db`, or `$SUR_DB` when set.
+- `sur rollback <session-id>`
+  - Reverts a previous hardening session in reverse task order.
+- `sur history`
+  - Lists previous hardening sessions.
+- `--dry-run`
+  - Previews changes without modifying the system.
+- `--json`
+  - Emits machine-readable output for automation.
+- Static Go binary
+  - No CGO requirement.
+  - Suitable for minimal VPS environments.
 
----
+## Installation
 
-## Install
+### Install Script
 
+```bash
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash
-
-### One-liner (Linux amd64)
-
-```bash
-curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-amd64 -o /tmp/sur \
-  && sudo mv /tmp/sur /usr/local/bin/sur \
-  && sudo chmod +x /usr/local/bin/sur
 ```
 
-### ARM64 (Raspberry Pi, Oracle Ampere, AWS Graviton)
+### Linux AMD64
 
 ```bash
-curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-arm64 -o /tmp/sur \
-  && sudo mv /tmp/sur /usr/local/bin/sur \
-  && sudo chmod +x /usr/local/bin/sur
+curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-amd64 -o /tmp/sur
+sudo mv /tmp/sur /usr/local/bin/sur
+sudo chmod +x /usr/local/bin/sur
 ```
 
-### Build from source
+### Linux ARM64
+
+Use this build for ARM64 servers, Raspberry Pi, Oracle Ampere, and AWS Graviton:
+
+```bash
+curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-arm64 -o /tmp/sur
+sudo mv /tmp/sur /usr/local/bin/sur
+sudo chmod +x /usr/local/bin/sur
+```
+
+### Build From Source
 
 ```bash
 git clone https://github.com/suleymanmercan/sur.git
@@ -52,206 +67,229 @@ go build -o sur .
 sudo mv sur /usr/local/bin/sur
 ```
 
-> Requires Go 1.22+. No CGO, no external dependencies.
+### Requirements
 
----
+- Go 1.22 or newer when building from source
+- Linux system
+- `sudo` or root access for hardening operations
 
-## Quick start
+## Quick Start
+
+Run a security audit:
 
 ```bash
-# Audit the system (no root needed)
 sur check
+```
 
-# Preview what would change
+Run a deeper audit with Lynis:
+
+```bash
+sur check --deep
+```
+
+Install Lynis automatically when it is missing:
+
+```bash
+sudo sur check --deep --install-lynis
+```
+
+Preview hardening changes:
+
+```bash
 sudo sur harden --dry-run
+```
 
-# Interactive TUI — pick and apply
+Open interactive hardening mode:
+
+```bash
 sudo sur harden
+```
 
-# CI / headless mode
+Run all hardening tasks without the TUI:
+
+```bash
 sudo sur harden --yes
+```
 
-# Undo a previous session
-sudo sur rollback <session-id>
+Run selected tasks only:
 
-# List past sessions
+```bash
+sudo sur harden --only disable_root_ssh,ssh_password_auth_off
+```
+
+Use a custom task directory or state database:
+
+```bash
+sudo sur harden --tasks ./tasks --state ./sur.db
+```
+
+View history:
+
+```bash
 sur history
 ```
 
----
+Roll back a previous session:
 
-## Project layout
-
-```
-sur/
-├── cmd/                # cobra commands (root, check, harden, rollback, history)
-├── internal/
-│   ├── osdetect/       # /etc/os-release parser
-│   ├── checker/        # built-in security checks
-│   ├── lynis/          # lynis wrapper + report parser
-│   ├── engine/         # YAML task loader + lifecycle engine
-│   ├── store/          # SQLite persistence (modernc.org/sqlite)
-│   ├── tui/            # Bubble Tea picker
-│   └── common/         # shared types (Finding, Report, Severity, ...)
-├── tasks/              # *.yaml hardening tasks (drop-in, embedded into binary)
-└── Makefile
+```bash
+sudo sur rollback <session-id>
 ```
 
----
+Emit JSON:
 
-## Adding a task
+```bash
+sur check --json
+sudo sur harden --dry-run --json
+```
 
-Drop a YAML file into `tasks/`:
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `sur check` | Audit the host and print a security report. |
+| `sur check --deep` | Include Lynis findings when Lynis is available. |
+| `sur harden` | Select and apply hardening tasks interactively. |
+| `sur harden --dry-run` | Show the planned hardening run without changing the host. |
+| `sur harden --yes` | Apply every task without opening the TUI. |
+| `sur harden --only <ids>` | Apply only comma-separated task IDs. |
+| `sur harden --resume` | Resume the latest unfinished session. |
+| `sur rollback <session-id>` | Roll back a session in reverse execution order. |
+| `sur history` | List previous sessions. |
+
+## Task System
+
+Hardening operations are defined as YAML task files under `tasks/`.
+
+Example:
 
 ```yaml
 id: disable_root_ssh
 name: "Disable SSH root login"
+description: "Sets PermitRootLogin no in /etc/ssh/sshd_config and restarts sshd."
 rollback_possible: true
-backup_files: [/etc/ssh/sshd_config]
+backup_files:
+  - /etc/ssh/sshd_config
 risk_level: low
 distros: [ubuntu, debian, rocky, alma, fedora]
 
 pre_check:
-    command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
-    expect_exit: 0
+  command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
+  expect_exit: 0
+
 exec:
-    - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
-    - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
+  - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
+
 post_check:
-    command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
-    expect_exit: 0
+  command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
+  expect_exit: 0
+
 rollback:
-    - command: "cp {backup_path} /etc/ssh/sshd_config"
-    - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
+  - command: "cp {backup_path} /etc/ssh/sshd_config"
+  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
 ```
 
-`{backup_path}` is substituted at rollback time with the file `sur` backed up before applying.
+Each task follows this lifecycle:
 
-Task YAML files are embedded into the binary at build time — no extra files needed on the target machine.
-
----
-
-## Supported distros
-
-| Distro                           | Family | Package manager |
-| -------------------------------- | ------ | --------------- |
-| Ubuntu / Debian                  | debian | apt             |
-| Rocky Linux / AlmaLinux / CentOS | rhel   | dnf             |
-| Fedora                           | fedora | dnf             |
-| openSUSE                         | suse   | zypper          |
-
----
-
-## Testing
-
-```bash
-make test
+```text
+pre-check
+backup
+execute
+post-check
+success or rollback
 ```
 
----
+## Built-In Tasks
 
-## What's NOT in the MVP
+| Task ID | Description | Risk |
+| --- | --- | --- |
+| `disable_root_ssh` | Sets `PermitRootLogin no` in SSH config. | low |
+| `ssh_password_auth_off` | Sets `PasswordAuthentication no` for key-based SSH auth. | medium |
+| `enable_ufw` | Allows SSH and enables UFW. | high |
+| `install_fail2ban` | Installs and enables fail2ban. | low |
+| `unattended_upgrades` | Enables automatic security updates on Debian/Ubuntu. | low |
 
-- SSH remote management
-- Terraform / cloud provider integration
-- OpenSCAP / CIS Benchmark
-- Web UI / multi-host fleet management
+## Supported Distributions
 
----
+| Distribution | Family | Package Manager |
+| --- | --- | --- |
+| Ubuntu | Debian | `apt` |
+| Debian | Debian | `apt` |
+| Rocky Linux | RHEL | `dnf` |
+| AlmaLinux | RHEL | `dnf` |
+| CentOS | RHEL | `dnf`/`yum` |
+| Fedora | Fedora | `dnf` |
+| openSUSE | SUSE | `zypper` |
 
-# sur
+## Architecture
 
-> Interactive Linux/VPS hardening CLI — audit, pick fixes in a TUI, apply with backup + rollback.
+```text
+sur/
+├── cmd/                # Cobra CLI commands
+│   ├── root
+│   ├── check
+│   ├── harden
+│   ├── rollback
+│   └── history
+├── internal/
+│   ├── osdetect/       # /etc/os-release parser
+│   ├── checker/        # Security checks
+│   ├── lynis/          # Lynis integration and parsing
+│   ├── engine/         # Task lifecycle engine
+│   ├── store/          # SQLite persistence
+│   ├── tui/            # Bubble Tea interface
+│   └── common/         # Shared models/types
+├── tasks/              # YAML hardening tasks
+├── docs/               # Static landing/docs page
+└── Makefile
+```
 
-`sur` is a single-binary Go tool aimed at developers spinning up a fresh server
-and small DevOps teams who want to say:
+## Development
 
-> "Harden my box — but show me what changed, let me approve it, and let me
-> roll it back if something breaks."
-
-## Highlights
-
-- **`sur check`** — built-in audit (SSH, firewall, fail2ban, unattended-upgrades,
-  listening ports, sudoers). Optional Lynis integration via `--deep`.
-- **`sur harden`** — Bubble Tea TUI: pick tasks with checkboxes, apply with
-  per-task backup → exec → post-check → rollback lifecycle.
-- **State in SQLite** (`modernc.org/sqlite`, pure-Go, static binary) at
-  `/var/lib/sur/sur.db`. Every session and task execution is recorded.
-- **`sur rollback <session-id>`** — undo a previous run, in reverse order.
-- **`sur history`** — list past sessions.
-- **`--json`** on every command for CI pipelines.
-- **`--dry-run`** to preview changes without touching the system.
-
-## Quick start
+Build the binary:
 
 ```bash
 make build
-sudo ./sur check
-sudo ./sur harden --dry-run        # preview
-sudo ./sur harden                  # interactive TUI
-sudo ./sur harden --yes            # CI / headless mode
-sudo ./sur rollback <session-id>
-./sur history
 ```
 
-## Project layout
-
-```
-sur/
-├── cmd/                # cobra commands (root, check, harden, rollback, history)
-├── internal/
-│   ├── osdetect/       # /etc/os-release parser
-│   ├── checker/        # built-in security checks
-│   ├── lynis/          # lynis wrapper + report parser
-│   ├── engine/         # YAML task loader + lifecycle motoru
-│   ├── store/          # SQLite persistence (modernc.org/sqlite)
-│   ├── tui/            # Bubble Tea picker
-│   └── common/         # shared types (Finding, Report, Severity, ...)
-├── tasks/              # *.yaml hardening tasks (drop-in)
-├── web/                # static landing/docs page
-└── Makefile
-```
-
-## Adding a task
-
-Drop a YAML file into `tasks/` (or `/etc/sur/tasks/`):
-
-```yaml
-id: disable_root_ssh
-name: "Disable SSH root login"
-rollback_possible: true
-backup_files: [/etc/ssh/sshd_config]
-risk_level: low
-distros: [ubuntu, debian, rocky, alma, fedora]
-
-pre_check:
-    command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
-    expect_exit: 0
-exec:
-    - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
-    - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
-post_check:
-    command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
-    expect_exit: 0
-rollback:
-    - command: "cp {backup_path} /etc/ssh/sshd_config"
-    - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
-```
-
-`{backup_path}` is substituted with the file `sur` backed up before applying.
-
-## Testing
+Run tests:
 
 ```bash
 make test
 ```
 
-All packages have unit tests; the engine has end-to-end tests covering
-success, failure-with-rollback and dry-run paths.
+Run `go vet`:
 
-## What's NOT in the MVP
+```bash
+make lint
+```
 
-- SSH remote management
-- Terraform / cloud provider integration
-- OpenSCAP / CIS benchmark
-- Web UI / multi-host fleet management
+Install locally:
+
+```bash
+sudo make install
+```
+
+Clean build output:
+
+```bash
+make clean
+```
+
+## Safety Notes
+
+- Run `sur harden --dry-run` before applying changes on an important host.
+- Keep a working SSH session open when changing SSH settings remotely.
+- Review high-risk tasks such as firewall activation before confirming them.
+- Rollback is task-dependent; tasks with `rollback_possible: false` may require manual recovery.
+
+## Non-MVP Scope
+
+Currently out of scope:
+
+- SSH remote fleet management
+- Multi-host orchestration
+- Web dashboard
+- Agent-based remediation
+- Kubernetes hardening
+- Full CIS benchmark automation

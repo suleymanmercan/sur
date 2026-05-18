@@ -1,41 +1,346 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>sur — Linux hardening, with consent</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap"
+            rel="stylesheet"
+        />
 
         <style>
-            .lang-tr {
-                display: none;
+            :root {
+                --bg: #0d1117;
+                --panel: #11161d;
+                --line: #1f2a37;
+                --ink: #e6edf3;
+                --dim: #8b949e;
+                --acc: #f28c28;
+                --ok: #7ce38b;
+                --warn: #ffbf00;
+                --bad: #f25f5c;
+                --indigo: #7aa2f7;
+                --serif: "Fraunces", Georgia, serif;
+                --mono: "JetBrains Mono", ui-monospace, monospace;
             }
-            html[data-lang="tr"] .lang-en {
-                display: none;
+            * {
+                box-sizing: border-box;
             }
-            html[data-lang="tr"] .lang-tr {
-                display: inline;
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--ink);
+                font-family: var(--mono);
+                line-height: 1.6;
             }
-            html[data-lang="en"] .lang-en {
-                display: inline;
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                background:
+                    radial-gradient(
+                        800px 400px at 80% -10%,
+                        rgba(242, 140, 40, 0.12),
+                        transparent 60%
+                    ),
+                    radial-gradient(
+                        600px 600px at -10% 60%,
+                        rgba(122, 162, 247, 0.08),
+                        transparent 70%
+                    );
+                z-index: 0;
             }
-            html[data-lang="en"] .lang-tr {
-                display: none;
+            main {
+                position: relative;
+                z-index: 1;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 64px 28px 96px;
             }
-
+            nav {
+                display: flex;
+                align-items: center;
+                gap: 24px;
+                font-size: 14px;
+                color: var(--dim);
+                flex-wrap: wrap;
+            }
+            nav strong {
+                color: var(--ink);
+                font-family: var(--serif);
+                font-size: 22px;
+                letter-spacing: 0.5px;
+            }
+            nav a {
+                color: var(--dim);
+                text-decoration: none;
+            }
+            nav a:hover {
+                color: var(--acc);
+            }
             .lang-toggle {
                 margin-left: auto;
                 background: transparent;
-                color: var(--ink);
                 border: 1px solid var(--line);
+                color: var(--ink);
                 border-radius: 999px;
                 padding: 6px 12px;
-                cursor: pointer;
                 font-family: var(--mono);
                 font-size: 12px;
+                cursor: pointer;
             }
             .lang-toggle:hover {
                 border-color: var(--acc);
                 color: var(--acc);
+            }
+            .hero {
+                margin: 80px 0 56px;
+            }
+            .tag {
+                display: inline-block;
+                color: var(--acc);
+                font-size: 13px;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+                margin-bottom: 18px;
+                border: 1px solid var(--acc);
+                padding: 4px 10px;
+                border-radius: 999px;
+            }
+            h1 {
+                font-family: var(--serif);
+                font-weight: 700;
+                font-size: clamp(40px, 6vw, 72px);
+                line-height: 1.05;
+                margin: 0 0 22px;
+                letter-spacing: -1px;
+            }
+            h1 em {
+                font-style: italic;
+                color: var(--acc);
+            }
+            .lede {
+                font-size: 18px;
+                color: var(--dim);
+                max-width: 680px;
+            }
+            .cta {
+                margin-top: 36px;
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 18px;
+                border-radius: 8px;
+                font-weight: 600;
+                text-decoration: none;
+                transition:
+                    transform 0.15s,
+                    background 0.15s;
+            }
+            .btn-primary {
+                background: var(--acc);
+                color: #1b1004;
+            }
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                background: #ffa244;
+            }
+            .btn-ghost {
+                border: 1px solid var(--line);
+                color: var(--ink);
+            }
+            .btn-ghost:hover {
+                border-color: var(--acc);
+                color: var(--acc);
+            }
+            section {
+                margin: 80px 0;
+            }
+            h2 {
+                font-family: var(--serif);
+                font-size: 28px;
+                margin: 0 0 18px;
+                letter-spacing: -0.5px;
+            }
+            h2 .num {
+                color: var(--dim);
+                font-family: var(--mono);
+                font-size: 13px;
+                margin-right: 14px;
+                vertical-align: middle;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 18px;
+            }
+            .card {
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                padding: 22px;
+                transition:
+                    border-color 0.15s,
+                    transform 0.15s;
+            }
+            .card:hover {
+                border-color: var(--acc);
+                transform: translateY(-2px);
+            }
+            .card h3 {
+                margin: 0 0 8px;
+                color: var(--acc);
+                font-family: var(--mono);
+                font-size: 14px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+            .card p {
+                margin: 0;
+                color: var(--dim);
+                font-size: 14px;
+            }
+            pre {
+                background: #0a0f15;
+                border: 1px solid var(--line);
+                border-left: 3px solid var(--acc);
+                border-radius: 8px;
+                padding: 18px 20px;
+                overflow-x: auto;
+                font-size: 13.5px;
+                color: #cdd9e5;
+            }
+            .install-box {
+                background: #0a0f15;
+                border: 1px solid var(--line);
+                border-left: 3px solid var(--ok);
+                border-radius: 8px;
+                padding: 18px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                flex-wrap: wrap;
+                margin-top: 24px;
+            }
+            .install-box code {
+                font-size: 13px;
+                color: var(--ok);
+                flex: 1;
+                word-break: break-all;
+            }
+            .copy-btn {
+                background: var(--line);
+                border: none;
+                color: var(--ink);
+                padding: 6px 14px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-family: var(--mono);
+                font-size: 12px;
+                white-space: nowrap;
+                transition: background 0.15s;
+            }
+            .copy-btn:hover {
+                background: var(--acc);
+                color: #1b1004;
+            }
+            .term {
+                background: #0a0f15;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            .term-head {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 10px 14px;
+                border-bottom: 1px solid var(--line);
+                background: #11161d;
+            }
+            .term-head span {
+                width: 11px;
+                height: 11px;
+                border-radius: 50%;
+            }
+            .dot-r {
+                background: #f25f5c;
+            }
+            .dot-y {
+                background: #ffbf00;
+            }
+            .dot-g {
+                background: #7ce38b;
+            }
+            .term-body {
+                padding: 18px 22px;
+                font-size: 13.5px;
+                line-height: 1.7;
+                white-space: pre;
+                overflow-x: auto;
+            }
+            .ok {
+                color: var(--ok);
+            }
+            .warn {
+                color: var(--warn);
+            }
+            .bad {
+                color: var(--bad);
+            }
+            .dim {
+                color: var(--dim);
+            }
+            .ink {
+                color: var(--ink);
+            }
+            .ac {
+                color: var(--acc);
+            }
+            .lifecycle {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 8px;
+                font-family: var(--mono);
+                font-size: 13px;
+            }
+            .lifecycle span {
+                padding: 8px 14px;
+                border: 1px solid var(--line);
+                border-radius: 999px;
+                background: var(--panel);
+            }
+            .lifecycle .arrow {
+                border: none;
+                background: none;
+                color: var(--acc);
+            }
+            footer {
+                margin-top: 80px;
+                padding-top: 24px;
+                border-top: 1px solid var(--line);
+                color: var(--dim);
+                font-size: 13px;
+                display: flex;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            ::selection {
+                background: var(--acc);
+                color: #1b1004;
             }
         </style>
     </head>
@@ -44,271 +349,90 @@
         <main>
             <nav>
                 <strong>sur</strong>
-
-                <a href="#install">
-                    <span class="lang-en">install</span>
-                    <span class="lang-tr">kurulum</span>
-                </a>
-
-                <a href="#commands">
-                    <span class="lang-en">commands</span>
-                    <span class="lang-tr">komutlar</span>
-                </a>
-
-                <a href="#lifecycle">
-                    <span class="lang-en">lifecycle</span>
-                    <span class="lang-tr">akış</span>
-                </a>
-
-                <a href="#tasks">
-                    <span class="lang-en">tasks</span>
-                    <span class="lang-tr">görevler</span>
-                </a>
-
+                <a href="#install" data-i18n="nav_install"></a>
+                <a href="#commands" data-i18n="nav_commands"></a>
+                <a href="#lifecycle" data-i18n="nav_lifecycle"></a>
+                <a href="#tasks" data-i18n="nav_tasks"></a>
                 <a href="https://github.com/suleymanmercan/sur">github</a>
-
-                <button class="lang-toggle" onclick="toggleLang()">
-                    <span class="lang-en">TR</span>
-                    <span class="lang-tr">EN</span>
+                <button class="lang-toggle" type="button" onclick="toggleLang()" id="lang-toggle">
+                    TR
                 </button>
             </nav>
 
             <section class="hero">
                 <div class="tag">Linux hardening CLI · v0.1</div>
-
-                <h1>
-                    <span class="lang-en">Harden the box.</span>
-                    <span class="lang-tr">Sunucuyu harden et.</span>
-                    <br />
-                    <em>
-                        <span class="lang-en">Show your work.</span>
-                        <span class="lang-tr">Ne değiştiğini göster.</span>
-                    </em>
-                </h1>
-
-                <p class="lede">
-                    <span class="lang-en">
-                        <code>sur</code> is a single-binary, interactive hardening tool for fresh
-                        Linux servers. Audit, pick fixes in a TUI, apply with per-task backup +
-                        rollback, and keep every session in SQLite — so you can prove what changed
-                        and undo it when something breaks.
-                    </span>
-
-                    <span class="lang-tr">
-                        <code>sur</code>, yeni Linux sunucuları için geliştirilmiş single-binary,
-                        interaktif bir hardening aracıdır. Audit çalıştır, düzeltmeleri TUI
-                        üzerinden seç, her task için backup + rollback ile uygula ve her session
-                        bilgisini SQLite içinde sakla. Böylece neyin değiştiğini kanıtlayabilir, bir
-                        şey bozulursa geri alabilirsin.
-                    </span>
-                </p>
-
+                <h1 data-i18n="hero_title"></h1>
+                <p class="lede" data-i18n="hero_desc"></p>
                 <div class="cta">
-                    <a class="btn btn-primary" href="#install">
-                        <span class="lang-en">→ install</span>
-                        <span class="lang-tr">→ kurulum</span>
-                    </a>
-
-                    <a class="btn btn-ghost" href="https://github.com/suleymanmercan/sur">
-                        github
-                    </a>
+                    <a class="btn btn-primary" href="#install" data-i18n="hero_cta"></a>
+                    <a class="btn btn-ghost" href="https://github.com/suleymanmercan/sur">github</a>
                 </div>
             </section>
 
             <section id="install">
-                <h2>
-                    <span class="num">00</span>
-                    <span class="lang-en">Install</span>
-                    <span class="lang-tr">Kurulum</span>
-                </h2>
-
-                <p class="lede" style="font-size: 15px">
-                    <span class="lang-en"
-                        >Single binary, no dependencies. Detects your architecture
-                        automatically.</span
-                    >
-                    <span class="lang-tr"
-                        >Single binary, dependency yok. Architecture otomatik algılanır.</span
-                    >
-                </p>
-
+                <h2><span class="num">00</span><span data-i18n="install_title"></span></h2>
+                <p class="lede" style="font-size: 15px" data-i18n="install_desc"></p>
                 <div class="install-box">
                     <code id="install-cmd"
                         >curl -fsSL
                         https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo
                         bash</code
                     >
-
-                    <button class="copy-btn" onclick="copyInstall()">
-                        <span class="lang-en">copy</span>
-                        <span class="lang-tr">kopyala</span>
-                    </button>
+                    <button
+                        class="copy-btn"
+                        type="button"
+                        onclick="copyInstall()"
+                        id="copy-btn"
+                        data-i18n="copy_btn"
+                    ></button>
                 </div>
-
-                <p style="color: var(--dim); font-size: 13px; margin-top: 12px">
-                    <span class="lang-en"
-                        >Supports: Linux amd64 · arm64 · Debian · Ubuntu · Rocky · AlmaLinux ·
-                        Fedora</span
-                    >
-                    <span class="lang-tr"
-                        >Destek: Linux amd64 · arm64 · Debian · Ubuntu · Rocky · AlmaLinux ·
-                        Fedora</span
-                    >
-                </p>
+                <p
+                    style="color: var(--dim); font-size: 13px; margin-top: 12px"
+                    data-i18n="install_support"
+                ></p>
             </section>
 
             <section id="what">
-                <h2>
-                    <span class="num">01</span>
-                    <span class="lang-en">Why another hardening tool</span>
-                    <span class="lang-tr">Neden başka bir hardening tool</span>
-                </h2>
-
+                <h2><span class="num">01</span><span data-i18n="why_title"></span></h2>
                 <div class="grid">
                     <div class="card">
-                        <h3>
-                            <span class="lang-en">consent-first</span>
-                            <span class="lang-tr">consent-first</span>
-                        </h3>
-                        <p>
-                            <span class="lang-en"
-                                >Every change is shown, checked, and approved before it touches the
-                                system.</span
-                            >
-                            <span class="lang-tr"
-                                >Sisteme dokunmadan önce her change gösterilir, check edilir ve onay
-                                ister.</span
-                            >
-                        </p>
+                        <h3>consent-first</h3>
+                        <p data-i18n="card_consent"></p>
                     </div>
-
                     <div class="card">
-                        <h3>
-                            <span class="lang-en">reversible</span>
-                            <span class="lang-tr">reversible</span>
-                        </h3>
-                        <p>
-                            <span class="lang-en"
-                                >Each task backs up its config and registers a rollback. One command
-                                undoes a whole session.</span
-                            >
-                            <span class="lang-tr"
-                                >Her task config backup alır ve rollback kaydı oluşturur. Tek
-                                komutla bütün session geri alınabilir.</span
-                            >
-                        </p>
+                        <h3>reversible</h3>
+                        <p data-i18n="card_reversible"></p>
                     </div>
-
                     <div class="card">
-                        <h3>
-                            <span class="lang-en">auditable</span>
-                            <span class="lang-tr">auditable</span>
-                        </h3>
-                        <p>
-                            <span class="lang-en"
-                                >SQLite at <code>/var/lib/sur/sur.db</code>: every session, every
-                                task, every backup blob.</span
-                            >
-                            <span class="lang-tr"
-                                ><code>/var/lib/sur/sur.db</code> içinde her session, task ve backup
-                                blob kayıt altına alınır.</span
-                            >
-                        </p>
+                        <h3>auditable</h3>
+                        <p data-i18n="card_auditable"></p>
                     </div>
-
                     <div class="card">
-                        <h3>
-                            <span class="lang-en">static binary</span>
-                            <span class="lang-tr">static binary</span>
-                        </h3>
-                        <p>
-                            <span class="lang-en"
-                                >Pure-Go SQLite driver → no CGO, no dependencies, one file
-                                deploy.</span
-                            >
-                            <span class="lang-tr"
-                                >Pure-Go SQLite driver → CGO yok, dependency yok, tek dosya
-                                deploy.</span
-                            >
-                        </p>
+                        <h3>static binary</h3>
+                        <p data-i18n="card_static"></p>
                     </div>
                 </div>
             </section>
 
             <section id="commands">
-                <h2>
-                    <span class="num">02</span>
-                    <span class="lang-en">The four verbs</span>
-                    <span class="lang-tr">Dört temel command</span>
-                </h2>
-
-                <pre>
-$ sur check                  # audit + score
-$ sur check --deep --json    # merge with lynis, machine output
-$ sur harden                 # Bubble Tea TUI: pick & apply
-$ sur harden --dry-run       # preview without touching anything
-$ sur harden --yes           # CI / headless
-$ sur rollback &lt;session&gt;     # reverse a previous run
-$ sur history                # list past sessions</pre
-                >
+                <h2><span class="num">02</span><span data-i18n="commands_title"></span></h2>
+                <pre id="commands-pre"></pre>
             </section>
 
             <section>
-                <h2>
-                    <span class="num">03</span>
-                    <span class="lang-en">What <code>sur check</code> looks like</span>
-                    <span class="lang-tr"><code>sur check</code> çıktısı</span>
-                </h2>
-
+                <h2><span class="num">03</span><span data-i18n="check_title"></span></h2>
                 <div class="term">
                     <div class="term-head">
-                        <span class="dot-r"></span>
-                        <span class="dot-y"></span>
-                        <span class="dot-g"></span>
+                        <span class="dot-r"></span><span class="dot-y"></span
+                        ><span class="dot-g"></span>
                     </div>
-
-                    <div class="term-body">
-                        <span class="ok">sur check</span>
-                        <span class="dim">host: Debian GNU/Linux 12 (bookworm) · pkg: apt</span>
-
-                        STATUS ID TITLE
-                        ──────────────────────────────────────────────────────────────────
-                        <span class="bad">FAIL</span> ssh.root_login SSH root login is allowed
-                        <span class="dim">→ Set 'PermitRootLogin no' in /etc/ssh/sshd_config</span>
-                        <span class="bad">FAIL</span> ssh.password_auth SSH password authentication
-                        is enabled <span class="warn">WARN</span> ssh.port SSH listens on default
-                        port 22 <span class="bad">FAIL</span> firewall.none No active host firewall
-                        detected <span class="bad">FAIL</span> fail2ban.installed fail2ban not
-                        installed <span class="bad">FAIL</span> updates.auto Automatic security
-                        updates not configured <span class="ok">PASS</span> ports.listening 4
-                        listening sockets <span class="ok">PASS</span> sudo.nopasswd No NOPASSWD
-                        entries in sudoers
-
-                        <span class="warn">Score: 43/100 Issues: 6</span>
-                        <span class="dim">Run `sur harden` to fix interactively.</span>
-                    </div>
+                    <div class="term-body" id="check-output"></div>
                 </div>
             </section>
 
             <section id="lifecycle">
-                <h2>
-                    <span class="num">04</span>
-                    <span class="lang-en">The task lifecycle</span>
-                    <span class="lang-tr">Task lifecycle</span>
-                </h2>
-
-                <p class="lede" style="font-size: 15px">
-                    <span class="lang-en">
-                        Every task runs the same five-step state machine — and if any step fails,
-                        only that task is rolled back. The rest of the run continues.
-                    </span>
-
-                    <span class="lang-tr">
-                        Her task aynı beş adımlı state machine üzerinden çalışır. Herhangi bir adım
-                        hata verirse sadece ilgili task rollback edilir. Run devam eder.
-                    </span>
-                </p>
-
+                <h2><span class="num">04</span><span data-i18n="lifecycle_title"></span></h2>
+                <p class="lede" style="font-size: 15px" data-i18n="lifecycle_desc"></p>
                 <div class="lifecycle">
                     <span>pre_check</span><span class="arrow">→</span> <span>backup</span
                     ><span class="arrow">→</span> <span>exec</span><span class="arrow">→</span>
@@ -318,12 +442,7 @@ $ sur history                # list past sessions</pre
             </section>
 
             <section id="tasks">
-                <h2>
-                    <span class="num">05</span>
-                    <span class="lang-en">A task is just YAML</span>
-                    <span class="lang-tr">Task sadece YAML</span>
-                </h2>
-
+                <h2><span class="num">05</span><span data-i18n="tasks_title"></span></h2>
                 <pre><span class="ac">id</span>: disable_root_ssh
 <span class="ac">name</span>: "Disable SSH root login"
 <span class="ac">rollback_possible</span>: true
@@ -334,46 +453,186 @@ $ sur history                # list past sessions</pre
 <span class="ac">pre_check</span>:
   command: "grep -Eiq '^PermitRootLogin yes' /etc/ssh/sshd_config"
   expect_exit: 0
-
 <span class="ac">exec</span>:
   - command: "sed -ri 's/^#?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config"
   - command: "systemctl restart ssh 2&gt;/dev/null || systemctl restart sshd"
-
 <span class="ac">post_check</span>:
   command: "grep -Eq '^PermitRootLogin no' /etc/ssh/sshd_config"
   expect_exit: 0
-
 <span class="ac">rollback</span>:
   - command: "cp {backup_path} /etc/ssh/sshd_config"
   - command: "systemctl restart ssh 2&gt;/dev/null || systemctl restart sshd"</pre>
-
-                <p class="lede" style="font-size: 14px; margin-top: 14px">
-                    <span class="lang-en">
-                        <code>{backup_path}</code> is substituted at rollback time with the file
-                        <code>sur</code> backed up before applying.
-                    </span>
-
-                    <span class="lang-tr">
-                        <code>{backup_path}</code>, rollback sırasında <code>sur</code> tarafından
-                        alınan backup dosyasıyla değiştirilir.
-                    </span>
-                </p>
+                <p
+                    class="lede"
+                    style="font-size: 14px; margin-top: 14px"
+                    data-i18n="tasks_desc"
+                ></p>
             </section>
 
             <footer>
-                <span>
-                    <span class="lang-en">sur · linux hardening with consent</span>
-                    <span class="lang-tr">sur · consent-first Linux hardening</span>
-                </span>
-
+                <span data-i18n="footer_left"></span>
                 <span>built with Go · cobra · bubbletea · lipgloss · modernc/sqlite</span>
             </footer>
         </main>
 
         <script>
+            const translations = {
+                en: {
+                    title: "sur — Linux hardening, with consent",
+                    nav_install: "install",
+                    nav_commands: "commands",
+                    nav_lifecycle: "lifecycle",
+                    nav_tasks: "tasks",
+
+                    hero_title: `Harden the box.<br><em>Show your work.</em>`,
+                    hero_desc: `
+      <code>sur</code> is a single-binary, interactive hardening tool for fresh Linux
+      servers. Audit, pick fixes in a TUI, apply with per-task backup + rollback,
+      and keep every session in SQLite — so you can prove what changed and undo it
+      when something breaks.
+    `,
+                    hero_cta: "→ install",
+
+                    install_title: "Install",
+                    install_desc:
+                        "Single binary, no dependencies. Detects your architecture automatically.",
+                    install_support:
+                        "Supports: Linux amd64 · arm64 · Debian · Ubuntu · Rocky · AlmaLinux · Fedora",
+                    copy_btn: "copy",
+
+                    why_title: "Why another hardening tool",
+                    card_consent:
+                        "Every change is shown, checked, and approved before it touches the system.",
+                    card_reversible:
+                        "Each task backs up its config and registers a rollback. One command undoes a whole session.",
+                    card_auditable: `SQLite at <code>/var/lib/sur/sur.db</code>: every session, every task, every backup blob.`,
+                    card_static: `Pure-Go SQLite driver (<code>modernc.org/sqlite</code>) → no CGO, no dependencies, one file deploy.`,
+
+                    commands_title: "The four verbs",
+                    commands: `$ sur check                  # built-in audit + score
+$ sur check --deep --json    # merge with lynis, machine output
+$ sur harden                 # Bubble Tea TUI: pick & apply
+$ sur harden --dry-run       # preview without touching anything
+$ sur harden --yes           # CI / headless
+$ sur rollback <session>     # reverse a previous run
+$ sur history                # list past sessions`,
+
+                    check_title: `What <code>sur check</code> looks like`,
+                    check_output: `<span class="ok">sur check</span>
+<span class="dim">host: Debian GNU/Linux 12 (bookworm) · pkg: apt</span>
+
+STATUS   ID                  TITLE
+──────────────────────────────────────────────────────────────────
+<span class="bad">FAIL</span>     ssh.root_login      SSH root login is allowed
+         <span class="dim">→ Set 'PermitRootLogin no' in /etc/ssh/sshd_config</span>
+<span class="bad">FAIL</span>     ssh.password_auth   SSH password authentication is enabled
+<span class="warn">WARN</span>     ssh.port            SSH listens on default port 22
+<span class="bad">FAIL</span>     firewall.none       No active host firewall detected
+<span class="bad">FAIL</span>     fail2ban.installed  fail2ban not installed
+<span class="bad">FAIL</span>     updates.auto        Automatic security updates not configured
+<span class="ok">PASS</span>     ports.listening     4 listening sockets
+<span class="ok">PASS</span>     sudo.nopasswd       No NOPASSWD entries in sudoers
+
+<span class="warn">Score: 43/100   Issues: 6</span>
+<span class="dim">Run \`sur harden\` to fix interactively.</span>`,
+
+                    lifecycle_title: "The task lifecycle",
+                    lifecycle_desc:
+                        "Every task runs the same five-step state machine — and if any step fails, only that task is rolled back. The rest of the run continues.",
+
+                    tasks_title: "A task is just YAML",
+                    tasks_desc: `<code>{backup_path}</code> is substituted at rollback time with the file <code>sur</code> backed up before applying.`,
+
+                    footer_left: "sur · linux hardening with consent",
+                },
+
+                tr: {
+                    title: "sur — consent-first Linux hardening",
+                    nav_install: "kurulum",
+                    nav_commands: "commands",
+                    nav_lifecycle: "lifecycle",
+                    nav_tasks: "tasks",
+
+                    hero_title: `Harden the box.<br><em>Ne değiştiğini göster.</em>`,
+                    hero_desc: `
+      <code>sur</code>, yeni Linux sunucuları için geliştirilmiş single-binary,
+      interaktif bir hardening tool'dur. Audit çalıştır, fix'leri TUI üzerinden seç,
+      her task için backup + rollback ile uygula ve her session'ı SQLite içinde sakla.
+      Böylece neyin değiştiğini kanıtlayabilir, bir şey bozulursa geri alabilirsin.
+    `,
+                    hero_cta: "→ kurulum",
+
+                    install_title: "Kurulum",
+                    install_desc: "Single binary, dependency yok. Architecture otomatik algılanır.",
+                    install_support:
+                        "Destek: Linux amd64 · arm64 · Debian · Ubuntu · Rocky · AlmaLinux · Fedora",
+                    copy_btn: "kopyala",
+
+                    why_title: "Neden başka bir hardening tool?",
+                    card_consent:
+                        "Sisteme dokunmadan önce her change gösterilir, check edilir ve onay ister.",
+                    card_reversible:
+                        "Her task config backup alır ve rollback kaydı oluşturur. Tek command ile bütün session geri alınabilir.",
+                    card_auditable: `<code>/var/lib/sur/sur.db</code> içinde her session, task ve backup blob kayıt altına alınır.`,
+                    card_static: `Pure-Go SQLite driver (<code>modernc.org/sqlite</code>) → CGO yok, dependency yok, tek dosya deploy.`,
+
+                    commands_title: "Dört temel command",
+                    commands: `$ sur check                  # built-in audit + score
+$ sur check --deep --json    # lynis ile merge, machine output
+$ sur harden                 # Bubble Tea TUI: seç & uygula
+$ sur harden --dry-run       # sisteme dokunmadan preview
+$ sur harden --yes           # CI / headless kullanım
+$ sur rollback <session>     # önceki run'ı reverse et
+$ sur history                # geçmiş session'ları listele`,
+
+                    check_title: `<code>sur check</code> çıktısı`,
+                    check_output: `<span class="ok">sur check</span>
+<span class="dim">host: Debian GNU/Linux 12 (bookworm) · pkg: apt</span>
+
+STATUS   ID                  TITLE
+──────────────────────────────────────────────────────────────────
+<span class="bad">FAIL</span>     ssh.root_login      SSH root login açık
+         <span class="dim">→ /etc/ssh/sshd_config içinde 'PermitRootLogin no' ayarla</span>
+<span class="bad">FAIL</span>     ssh.password_auth   SSH password authentication açık
+<span class="warn">WARN</span>     ssh.port            SSH default port 22 üzerinde dinliyor
+<span class="bad">FAIL</span>     firewall.none       Aktif host firewall bulunamadı
+<span class="bad">FAIL</span>     fail2ban.installed  fail2ban kurulu değil
+<span class="bad">FAIL</span>     updates.auto        Automatic security updates configure edilmemiş
+<span class="ok">PASS</span>     ports.listening     4 listening socket
+<span class="ok">PASS</span>     sudo.nopasswd       sudoers içinde NOPASSWD entry yok
+
+<span class="warn">Score: 43/100   Issues: 6</span>
+<span class="dim">Fix'lemek için \`sur harden\` çalıştır.</span>`,
+
+                    lifecycle_title: "Task lifecycle",
+                    lifecycle_desc:
+                        "Her task aynı beş adımlı state machine üzerinden çalışır. Bir step fail olursa sadece ilgili task rollback edilir. Run'ın geri kalanı devam eder.",
+
+                    tasks_title: "Task sadece YAML",
+                    tasks_desc: `<code>{backup_path}</code>, rollback sırasında <code>sur</code> tarafından apply öncesi alınan backup dosyasıyla değiştirilir.`,
+
+                    footer_left: "sur · consent-first Linux hardening",
+                },
+            };
+
             function setLang(lang) {
-                document.documentElement.dataset.lang = lang;
+                const t = translations[lang] || translations.en;
+
                 document.documentElement.lang = lang;
+                document.documentElement.dataset.lang = lang;
+                document.title = t.title;
+
+                document.querySelectorAll("[data-i18n]").forEach((el) => {
+                    const key = el.dataset.i18n;
+                    if (t[key]) el.innerHTML = t[key];
+                });
+
+                document.getElementById("commands-pre").textContent = t.commands;
+                document.getElementById("check-output").innerHTML = t.check_output;
+
+                const toggle = document.getElementById("lang-toggle");
+                toggle.textContent = lang === "en" ? "TR" : "EN";
+
                 localStorage.setItem("sur-lang", lang);
             }
 
@@ -384,19 +643,15 @@ $ sur history                # list past sessions</pre
 
             function copyInstall() {
                 const cmd = document.getElementById("install-cmd").textContent.trim();
+                const btn = document.getElementById("copy-btn");
+                const lang = document.documentElement.dataset.lang || "en";
 
                 navigator.clipboard.writeText(cmd).then(() => {
-                    const btn = document.querySelector(".copy-btn");
-                    const lang = document.documentElement.dataset.lang || "en";
-
                     btn.textContent = lang === "tr" ? "kopyalandı!" : "copied!";
 
                     setTimeout(() => {
-                        btn.innerHTML = `
-        <span class="lang-en">copy</span>
-        <span class="lang-tr">kopyala</span>
-      `;
-                    }, 2000);
+                        btn.textContent = translations[lang].copy_btn;
+                    }, 1800);
                 });
             }
 
