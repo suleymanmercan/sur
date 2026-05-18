@@ -1,7 +1,15 @@
 package main
 
-import "github.com/suleymanmercan/sur/cmd"
+import (
+    "embed"
+
+    "github.com/suleymanmercan/sur/cmd"
+)
+
+//go:embed tasks/*.yaml
+var taskFS embed.FS
 
 func main() {
-	cmd.Execute()
+    cmd.SetTaskFS(taskFS)
+    cmd.Execute()
 }

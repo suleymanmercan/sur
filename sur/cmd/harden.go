@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
 	"os"
@@ -15,7 +16,10 @@ import (
 	"github.com/suleymanmercan/sur/internal/store"
 	"github.com/suleymanmercan/sur/internal/tui"
 )
-
+var embeddedTaskFS embed.FS
+func SetTaskFS(fs embed.FS) {
+    embeddedTaskFS = fs
+}
 var (
 	dryRun    bool
 	yesFlag   bool
@@ -34,16 +38,19 @@ var hardenCmd = &cobra.Command{
 			return errors.New("sur harden requires root privileges (run with sudo) — or pass --dry-run")
 		}
 
-		dir, err := resolveTaskDir(taskDir)
-		if err != nil {
-			return err
+		var tasks []engine.Task
+		var err error
+
+		if taskDir != "" {
+		    tasks, err = engine.LoadTasks(taskDir)
+		} else {
+		    tasks, err = engine.LoadTasksFS(embeddedTaskFS, "tasks")
 		}
-		tasks, err := engine.LoadTasks(dir)
 		if err != nil {
-			return err
+		    return err
 		}
 		if len(tasks) == 0 {
-			return fmt.Errorf("no tasks found in %s", dir)
+			return fmt.Errorf("no tasks found in %s")
 		}
 
 		s, err := store.Open(stateFile)

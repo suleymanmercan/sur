@@ -4,6 +4,7 @@ package engine
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -71,7 +72,37 @@ func LoadTasks(dir string) ([]Task, error) {
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
 	return tasks, nil
 }
-
+// LoadTasksFS reads tasks from an embedded filesystem.
+func LoadTasksFS(fs embed.FS, dir string) ([]Task, error) {
+    entries, err := fs.ReadDir(dir)
+    if err != nil {
+        return nil, err
+    }
+    var tasks []Task
+    for _, e := range entries {
+        if e.IsDir() {
+            continue
+        }
+        name := e.Name()
+        if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
+            continue
+        }
+        b, err := fs.ReadFile(dir + "/" + name)
+        if err != nil {
+            return nil, err
+        }
+        var t Task
+        if err := yaml.Unmarshal(b, &t); err != nil {
+            return nil, err
+        }
+        if t.ID == "" {
+            return nil, fmt.Errorf("%s: task id is required", name)
+        }
+        tasks = append(tasks, t)
+    }
+    sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
+    return tasks, nil
+}
 func loadTaskFile(path string) (Task, error) {
 	var t Task
 	b, err := os.ReadFile(path)
