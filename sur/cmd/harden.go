@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/suleymanmer/sur/internal/engine"
-	"github.com/suleymanmer/sur/internal/store"
-	"github.com/suleymanmer/sur/internal/tui"
+	"github.com/suleymanmercan/sur/internal/engine"
+	"github.com/suleymanmercan/sur/internal/store"
+	"github.com/suleymanmercan/sur/internal/tui"
 )
 
 var (

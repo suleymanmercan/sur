@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/suleymanmer/sur/internal/engine"
-	"github.com/suleymanmer/sur/internal/store"
+	"github.com/suleymanmercan/sur/internal/engine"
+	"github.com/suleymanmercan/sur/internal/store"
 )
 
 var rollbackCmd = &cobra.Command{

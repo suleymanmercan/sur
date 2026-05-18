@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/suleymanmercan/sur/internal/checker"
-	"github.com/suleymanmer/sur/internal/common"
-	"github.com/suleymanmer/sur/internal/lynis"
-	"github.com/suleymanmer/sur/internal/osdetect"
+	"github.com/suleymanmercan/sur/internal/common"
+	"github.com/suleymanmercan/sur/internal/lynis"
+	"github.com/suleymanmercan/sur/internal/osdetect"
 )
 
 var (

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/suleymanmer/sur/internal/osdetect"
+	"github.com/suleymanmercan/sur/internal/osdetect"
 )
 
 // installLynisPackage tries to install lynis via the detected package manager.
