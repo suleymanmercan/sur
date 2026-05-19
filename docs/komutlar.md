@@ -57,6 +57,12 @@ TUI açmadan tüm uygulanabilir task'lar:
 sudo sur harden --yes
 ```
 
+Dışarıdan özel bir task dizini belirtme:
+
+```bash
+sudo sur harden --tasks /etc/sur/custom_tasks
+```
+
 ## Install / Setup
 
 Fresh server setup task'ları:

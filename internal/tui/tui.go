@@ -24,13 +24,13 @@ var (
 )
 
 // Run shows the hardening picker and returns the user's selected tasks.
-func Run(tasks []engine.Task) (selected []engine.Task, canceled bool, err error) {
+func Run(tasks []engine.RunnableTask) (selected []engine.RunnableTask, canceled bool, err error) {
 	return RunWithTitle(tasks, "sur — choose hardening tasks")
 }
 
 // RunWithTitle shows the picker with a custom title.
 // canceled=true when the user pressed q/esc.
-func RunWithTitle(tasks []engine.Task, title string) (selected []engine.Task, canceled bool, err error) {
+func RunWithTitle(tasks []engine.RunnableTask, title string) (selected []engine.RunnableTask, canceled bool, err error) {
 	m := initialModel(tasks, title)
 	p := tea.NewProgram(m, tea.WithInput(os.Stdin), tea.WithOutput(os.Stderr))
 	out, err := p.Run()
@@ -50,7 +50,7 @@ func RunWithTitle(tasks []engine.Task, title string) (selected []engine.Task, ca
 }
 
 type model struct {
-	tasks    []engine.Task
+	tasks    []engine.RunnableTask
 	title    string
 	cursor   int
 	selected map[int]bool
@@ -59,7 +59,7 @@ type model struct {
 	height   int
 }
 
-func initialModel(tasks []engine.Task, title string) model {
+func initialModel(tasks []engine.RunnableTask, title string) model {
 	return model{tasks: tasks, title: title, selected: make(map[int]bool), height: 12}
 }
 
@@ -116,24 +116,24 @@ func (m model) View() string {
 		}
 
 		risk := riskLow.Render("low")
-		switch strings.ToLower(t.RiskLevel) {
+		switch strings.ToLower(t.GetRiskLevel()) {
 		case "medium":
 			risk = riskMed.Render("med")
 		case "high":
 			risk = riskHigh.Render("high")
 		}
 
-		name := t.Name
+		name := t.GetName()
 		if name == "" {
-			name = t.ID
+			name = t.GetID()
 		}
 		line := fmt.Sprintf("%s%s  %s  (%s)", cursor, box, name, risk)
-		if !t.RollbackPossible {
+		if !t.GetRollbackPossible() {
 			line += dangerStyle.Render("  ⚠ no rollback")
 		}
 		b.WriteString(line + "\n")
-		if i == m.cursor && t.Description != "" {
-			b.WriteString(helpStyle.Render("       "+t.Description) + "\n")
+		if i == m.cursor && t.GetDescription() != "" {
+			b.WriteString(helpStyle.Render("       "+t.GetDescription()) + "\n")
 		}
 	}
 

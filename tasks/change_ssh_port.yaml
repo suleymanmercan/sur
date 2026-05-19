@@ -1,0 +1,29 @@
+id: change_ssh_port
+name: "Change SSH port to 2222"
+description: "Changes the SSH port to 2222, updates active firewalls (UFW/Firewalld) if they are active, and reloads sshd."
+rollback_possible: true
+backup_files:
+  - /etc/ssh/sshd_config
+risk_level: medium
+distros: [ubuntu, debian, rocky, alma, fedora]
+
+pre_check:
+  command: "! sshd -T 2>/dev/null | grep -Eiq '^port[[:space:]]+2222\\b'"
+  expect_exit: 0
+
+exec:
+  - command: "if command -v ufw >/dev/null 2>&1 && ufw status | grep -q 'Status: active'; then ufw allow 2222/tcp; fi"
+  - command: "if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then firewall-cmd --permanent --add-port=2222/tcp && firewall-cmd --reload; fi"
+  - command: "grep -qE '^[#[:space:]]*Port[[:space:]]+' /etc/ssh/sshd_config && sed -i -E 's/^[#[:space:]]*Port[[:space:]]+[0-9]+/Port 2222/' /etc/ssh/sshd_config || printf '\\nPort 2222\\n' >> /etc/ssh/sshd_config"
+  - command: "sshd -t"
+  - command: "systemctl reload ssh 2>/dev/null || systemctl reload sshd"
+
+post_check:
+  command: "sshd -T 2>/dev/null | grep -Eiq '^port[[:space:]]+2222\\b'"
+  expect_exit: 0
+
+rollback:
+  - command: "cp {backup_path} /etc/ssh/sshd_config"
+  - command: "systemctl reload ssh 2>/dev/null || systemctl reload sshd"
+  - command: "if command -v ufw >/dev/null 2>&1 && ufw status | grep -q 'Status: active'; then ufw delete allow 2222/tcp; fi"
+  - command: "if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then firewall-cmd --permanent --remove-port=2222/tcp && firewall-cmd --reload; fi"

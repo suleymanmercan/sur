@@ -104,6 +104,81 @@ func LoadTasksFS(fs embed.FS, dir string) ([]Task, error) {
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
 	return tasks, nil
 }
+
+// LoadAllRunnableTasks parses all YAML and Lua tasks under dir and returns them sorted by ID.
+func LoadAllRunnableTasks(dir string) ([]RunnableTask, error) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	matches, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	yml, _ := filepath.Glob(filepath.Join(dir, "*.yml"))
+	matches = append(matches, yml...)
+
+	var tasks []RunnableTask
+	for _, m := range matches {
+		t, err := loadTaskFile(m)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", m, err)
+		}
+		tasks = append(tasks, t)
+	}
+
+	luaMatches, _ := filepath.Glob(filepath.Join(dir, "*.lua"))
+	for _, m := range luaMatches {
+		t, err := LoadLuaTask(m)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", m, err)
+		}
+		tasks = append(tasks, t)
+	}
+
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i].GetID() < tasks[j].GetID() })
+	return tasks, nil
+}
+
+// LoadAllRunnableTasksFS reads YAML and Lua tasks from an embedded filesystem.
+func LoadAllRunnableTasksFS(fs embed.FS, dir string) ([]RunnableTask, error) {
+	entries, err := fs.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var tasks []RunnableTask
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		path := dir + "/" + name
+		if strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") {
+			b, err := fs.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			var t Task
+			if err := yaml.Unmarshal(b, &t); err != nil {
+				return nil, err
+			}
+			if t.ID == "" {
+				return nil, fmt.Errorf("%s: task id is required", name)
+			}
+			t.SourcePath = path
+			tasks = append(tasks, t)
+		} else if strings.HasSuffix(name, ".lua") {
+			t, err := LoadLuaTaskFS(fs, path)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", name, err)
+			}
+			tasks = append(tasks, t)
+		}
+	}
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i].GetID() < tasks[j].GetID() })
+	return tasks, nil
+}
+
 func loadTaskFile(path string) (Task, error) {
 	var t Task
 	b, err := os.ReadFile(path)
@@ -122,6 +197,97 @@ func loadTaskFile(path string) (Task, error) {
 
 // ---------- runtime ----------
 
+// RunnableTask is the interface implemented by both YAML and Lua tasks.
+type RunnableTask interface {
+	GetID() string
+	GetName() string
+	GetDescription() string
+	GetRollbackPossible() bool
+	GetBackupFiles() []string
+	GetRiskLevel() string
+	GetDistros() []string
+	NeedsRun(ctx context.Context) (bool, int)
+	Execute(ctx context.Context, dryRun bool, logFn func(format string, args ...any)) error
+	Verify(ctx context.Context) error
+	Revert(ctx context.Context, backupPath string, logFn func(format string, args ...any)) error
+}
+
+// GetID returns task ID.
+func (t Task) GetID() string { return t.ID }
+
+// GetName returns task name.
+func (t Task) GetName() string { return t.Name }
+
+// GetDescription returns task description.
+func (t Task) GetDescription() string { return t.Description }
+
+// GetRollbackPossible returns rollback capability.
+func (t Task) GetRollbackPossible() bool { return t.RollbackPossible }
+
+// GetBackupFiles returns file paths to backup.
+func (t Task) GetBackupFiles() []string { return t.BackupFiles }
+
+// GetRiskLevel returns risk level.
+func (t Task) GetRiskLevel() string { return t.RiskLevel }
+
+// GetDistros returns supported distributions.
+func (t Task) GetDistros() []string { return t.Distros }
+
+// NeedsRun returns whether the task needs execution.
+func (t Task) NeedsRun(ctx context.Context) (bool, int) {
+	if t.PreCheck.Command == "" {
+		return true, 0
+	}
+	_, code := runShell(ctx, t.PreCheck.Command)
+	return code == t.PreCheck.ExpectExit, code
+}
+
+// Execute runs the exec phase commands.
+func (t Task) Execute(ctx context.Context, dryRun bool, logFn func(format string, args ...any)) error {
+	if dryRun {
+		logFn("[%s] DRY-RUN — would run %d step(s)", t.ID, len(t.Exec))
+		for _, s := range t.Exec {
+			logFn("       $ %s", s.Command)
+		}
+		return nil
+	}
+	for _, s := range t.Exec {
+		out, code := runShell(ctx, s.Command)
+		expected := 0
+		if s.ExpectExit != nil {
+			expected = *s.ExpectExit
+		}
+		if code != expected {
+			return fmt.Errorf("step %q exited %d: %s", s.Command, code, strings.TrimSpace(out))
+		}
+	}
+	return nil
+}
+
+// Verify runs the post check command.
+func (t Task) Verify(ctx context.Context) error {
+	if t.PostCheck.Command == "" {
+		return nil
+	}
+	_, code := runShell(ctx, t.PostCheck.Command)
+	if code != t.PostCheck.ExpectExit {
+		return fmt.Errorf("post_check failed (exit %d)", code)
+	}
+	return nil
+}
+
+// Revert runs the rollback phase commands.
+func (t Task) Revert(ctx context.Context, backupPath string, logFn func(format string, args ...any)) error {
+	for _, s := range t.Rollback {
+		cmd := strings.ReplaceAll(s.Command, "{backup_path}", backupPath)
+		out, code := runShell(ctx, cmd)
+		if code != 0 {
+			return fmt.Errorf("rollback step %q exit %d: %s", cmd, code, strings.TrimSpace(out))
+		}
+	}
+	return nil
+}
+
 // Result describes what happened to a single task.
 type Result struct {
 	TaskID   string
@@ -131,12 +297,9 @@ type Result struct {
 }
 
 // NeedsRun reports whether a task's pre_check says there is work to do.
+// Deprecated: use t.NeedsRun instead.
 func NeedsRun(ctx context.Context, t Task) (bool, int) {
-	if t.PreCheck.Command == "" {
-		return true, 0
-	}
-	_, code := runShell(ctx, t.PreCheck.Command)
-	return code == t.PreCheck.ExpectExit, code
+	return t.NeedsRun(ctx)
 }
 
 // Runner executes tasks and records state.
@@ -168,14 +331,14 @@ func (r *Runner) StartSession() (string, error) {
 
 // Apply runs the given tasks under sessionID. It never aborts the whole run:
 // per-task failures rollback that task only.
-func (r *Runner) Apply(ctx context.Context, sessionID string, tasks []Task) []Result {
+func (r *Runner) Apply(ctx context.Context, sessionID string, tasks []RunnableTask) []Result {
 	var results []Result
 	anyFailed := false
 	anyDid := false
 	for _, t := range tasks {
 		select {
 		case <-ctx.Done():
-			results = append(results, Result{TaskID: t.ID, Status: store.TaskSkipped, Err: ctx.Err()})
+			results = append(results, Result{TaskID: t.GetID(), Status: store.TaskSkipped, Err: ctx.Err()})
 			continue
 		default:
 		}
@@ -201,44 +364,39 @@ func (r *Runner) Apply(ctx context.Context, sessionID string, tasks []Task) []Re
 	return results
 }
 
-func (r *Runner) runTask(ctx context.Context, sessionID string, t Task) Result {
+func (r *Runner) runTask(ctx context.Context, sessionID string, t RunnableTask) Result {
 	start := time.Now()
 	execID := uuid.NewString()
 
 	rec := store.TaskExecution{
-		ID: execID, SessionID: sessionID, TaskID: t.ID,
-		RollbackPossible: t.RollbackPossible, ExecutedAt: time.Now(),
+		ID: execID, SessionID: sessionID, TaskID: t.GetID(),
+		RollbackPossible: t.GetRollbackPossible(), ExecutedAt: time.Now(),
 		Status: store.TaskSuccess,
 	}
 
-	// 1. pre_check (informational; skip when already satisfied)
-	needsRun, code := NeedsRun(ctx, t)
+	// 1. pre_check
+	needsRun, code := t.NeedsRun(ctx)
 	if !needsRun {
-		msg := fmt.Sprintf("already satisfied or not applicable (pre_check exit %d, expected %d)", code, t.PreCheck.ExpectExit)
-		if t.PreCheck.Command != "" {
-			r.log("[%s] %s", t.ID, msg)
-			rec.Status = store.TaskSkipped
-			rec.ErrorMessage = msg
-			_ = r.Store.RecordTask(rec)
-			return Result{TaskID: t.ID, Status: store.TaskSkipped, Err: fmt.Errorf("%s", msg), Duration: time.Since(start)}
-		}
+		msg := fmt.Sprintf("already satisfied or not applicable (pre_check exit %d)", code)
+		r.log("[%s] %s", t.GetID(), msg)
+		rec.Status = store.TaskSkipped
+		rec.ErrorMessage = msg
+		_ = r.Store.RecordTask(rec)
+		return Result{TaskID: t.GetID(), Status: store.TaskSkipped, Err: fmt.Errorf("%s", msg), Duration: time.Since(start)}
 	}
 
 	if r.DryRun {
-		r.log("[%s] DRY-RUN — would run %d step(s)", t.ID, len(t.Exec))
-		for _, s := range t.Exec {
-			r.log("       $ %s", s.Command)
-		}
+		_ = t.Execute(ctx, true, r.log)
 		rec.Status = store.TaskSkipped
 		rec.ErrorMessage = "dry-run"
 		_ = r.Store.RecordTask(rec)
-		return Result{TaskID: t.ID, Status: store.TaskSkipped, Duration: time.Since(start)}
+		return Result{TaskID: t.GetID(), Status: store.TaskSkipped, Duration: time.Since(start)}
 	}
 
 	// 2. backup files
 	var backupPath string
 	var backupBlob []byte
-	for _, f := range t.BackupFiles {
+	for _, f := range t.GetBackupFiles() {
 		if data, err := os.ReadFile(f); err == nil {
 			backupBlob = data
 			backupPath = f
@@ -249,66 +407,45 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t Task) Result {
 	rec.BackupPath = backupPath
 
 	// 3. exec
-	r.log("[%s] applying...", t.ID)
-	var execErr error
-	for _, s := range t.Exec {
-		out, code := runShell(ctx, s.Command)
-		expected := 0
-		if s.ExpectExit != nil {
-			expected = *s.ExpectExit
-		}
-		if code != expected {
-			execErr = fmt.Errorf("step %q exited %d: %s", s.Command, code, strings.TrimSpace(out))
-			break
-		}
-	}
+	r.log("[%s] applying...", t.GetID())
+	execErr := t.Execute(ctx, false, r.log)
 
 	// 4. post_check
-	if execErr == nil && t.PostCheck.Command != "" {
-		_, code := runShell(ctx, t.PostCheck.Command)
-		if code != t.PostCheck.ExpectExit {
-			execErr = fmt.Errorf("post_check failed (exit %d)", code)
-		}
+	if execErr == nil {
+		execErr = t.Verify(ctx)
 	}
 
 	if execErr != nil {
 		rec.Status = store.TaskFailed
 		rec.ErrorMessage = execErr.Error()
-		r.log("[%s] FAILED: %v", t.ID, execErr)
+		r.log("[%s] FAILED: %v", t.GetID(), execErr)
 		_ = r.Store.RecordTask(rec)
 		// 5. rollback
-		if t.RollbackPossible {
+		if t.GetRollbackPossible() {
 			if err := r.rollbackTask(ctx, t, backupPath, backupBlob); err != nil {
-				r.log("[%s] rollback error: %v", t.ID, err)
+				r.log("[%s] rollback error: %v", t.GetID(), err)
 			} else {
-				r.log("[%s] rolled back", t.ID)
+				r.log("[%s] rolled back", t.GetID())
 				_ = r.Store.UpdateTaskStatus(execID, store.TaskRolledBack, execErr.Error())
-				return Result{TaskID: t.ID, Status: store.TaskRolledBack, Err: execErr, Duration: time.Since(start)}
+				return Result{TaskID: t.GetID(), Status: store.TaskRolledBack, Err: execErr, Duration: time.Since(start)}
 			}
 		}
-		return Result{TaskID: t.ID, Status: store.TaskFailed, Err: execErr, Duration: time.Since(start)}
+		return Result{TaskID: t.GetID(), Status: store.TaskFailed, Err: execErr, Duration: time.Since(start)}
 	}
 
-	r.log("[%s] OK", t.ID)
+	r.log("[%s] OK", t.GetID())
 	_ = r.Store.RecordTask(rec)
-	return Result{TaskID: t.ID, Status: store.TaskSuccess, Duration: time.Since(start)}
+	return Result{TaskID: t.GetID(), Status: store.TaskSuccess, Duration: time.Since(start)}
 }
 
-func (r *Runner) rollbackTask(ctx context.Context, t Task, backupPath string, blob []byte) error {
+func (r *Runner) rollbackTask(ctx context.Context, t RunnableTask, backupPath string, blob []byte) error {
 	// Restore the backup file first so rollback commands can rely on it.
 	if backupPath != "" && len(blob) > 0 {
 		if err := os.WriteFile(backupPath, blob, 0o644); err != nil {
 			return fmt.Errorf("restore %s: %w", backupPath, err)
 		}
 	}
-	for _, s := range t.Rollback {
-		cmd := strings.ReplaceAll(s.Command, "{backup_path}", backupPath)
-		out, code := runShell(ctx, cmd)
-		if code != 0 {
-			return fmt.Errorf("rollback step %q exit %d: %s", cmd, code, strings.TrimSpace(out))
-		}
-	}
-	return nil
+	return t.Revert(ctx, backupPath, r.log)
 }
 
 // RollbackSession replays the rollback for every task in the session,
@@ -322,14 +459,18 @@ func (r *Runner) RollbackSession(ctx context.Context, sessionID string, taskDir 
 	if err != nil {
 		return nil, err
 	}
-	return r.RollbackSessionTasks(ctx, sessionID, tasks)
+	runnableTasks := make([]RunnableTask, len(tasks))
+	for i, t := range tasks {
+		runnableTasks[i] = t
+	}
+	return r.RollbackSessionTasks(ctx, sessionID, runnableTasks)
 }
 
 // RollbackSessionTasks replays rollback using already loaded task definitions.
-func (r *Runner) RollbackSessionTasks(ctx context.Context, sessionID string, tasks []Task) ([]Result, error) {
-	byID := map[string]Task{}
+func (r *Runner) RollbackSessionTasks(ctx context.Context, sessionID string, tasks []RunnableTask) ([]Result, error) {
+	byID := map[string]RunnableTask{}
 	for _, t := range tasks {
-		byID[t.ID] = t
+		byID[t.GetID()] = t
 	}
 
 	execs, err := r.Store.TasksForSession(sessionID)

@@ -60,7 +60,7 @@ func TestApply_Success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	results := r.Apply(context.Background(), sid, []Task{{
+	results := r.Apply(context.Background(), sid, []RunnableTask{Task{
 		ID: "touch_task", Name: "touch",
 		Exec:      Phase{{Command: "touch " + target}},
 		PostCheck: PreCheck{Command: "test -f " + target, ExpectExit: 0},
@@ -87,7 +87,7 @@ func TestApply_FailureRollback(t *testing.T) {
 			{Command: "false"}, // force failure
 		},
 	}
-	res := r.Apply(context.Background(), sid, []Task{task})
+	res := r.Apply(context.Background(), sid, []RunnableTask{task})
 	if res[0].Status != store.TaskRolledBack {
 		t.Fatalf("expected rolled_back, got %s", res[0].Status)
 	}
@@ -102,7 +102,7 @@ func TestApply_DryRun(t *testing.T) {
 	r.DryRun = true
 	sid, _ := r.StartSession()
 	target := filepath.Join(t.TempDir(), "noop")
-	res := r.Apply(context.Background(), sid, []Task{{
+	res := r.Apply(context.Background(), sid, []RunnableTask{Task{
 		ID: "dry", Exec: Phase{{Command: "touch " + target}},
 	}})
 	if res[0].Status != store.TaskSkipped {
@@ -120,7 +120,7 @@ func TestApply_DryRunDoesNotStoreBackupData(t *testing.T) {
 	writeFile(t, backupFile, "SECRET")
 	sid, _ := r.StartSession()
 
-	_ = r.Apply(context.Background(), sid, []Task{{
+	_ = r.Apply(context.Background(), sid, []RunnableTask{Task{
 		ID:          "dry_backup",
 		BackupFiles: []string{backupFile},
 		Exec:        Phase{{Command: "true"}},
@@ -143,7 +143,7 @@ func TestApply_PreCheckMismatchSkipsForAnyExpectedExit(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "noop")
 	sid, _ := r.StartSession()
 
-	res := r.Apply(context.Background(), sid, []Task{{
+	res := r.Apply(context.Background(), sid, []RunnableTask{Task{
 		ID:       "already_done",
 		PreCheck: PreCheck{Command: "true", ExpectExit: 1},
 		Exec:     Phase{{Command: "touch " + target}},
@@ -176,7 +176,7 @@ func TestRollbackSessionTasksSkipsSkippedExecutions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	results, err := r.RollbackSessionTasks(context.Background(), sid, []Task{{
+	results, err := r.RollbackSessionTasks(context.Background(), sid, []RunnableTask{Task{
 		ID:               "skip_me",
 		RollbackPossible: true,
 	}})

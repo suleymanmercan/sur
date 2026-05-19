@@ -44,15 +44,12 @@ var rollbackCmd = &cobra.Command{
 	},
 }
 
-func loadRollbackTasks() ([]engine.Task, error) {
-	if taskDir != "" {
-		return engine.LoadTasks(taskDir)
-	}
-	tasks, err := engine.LoadTasksFS(embeddedTaskFS, "tasks")
+func loadRollbackTasks() ([]engine.RunnableTask, error) {
+	tasks, err := loadTaskSet(embeddedTaskFS, "tasks", taskDir)
 	if err != nil {
 		return nil, err
 	}
-	installTasks, err := engine.LoadTasksFS(embeddedTaskFS, "install_tasks")
+	installTasks, err := loadTaskSet(embeddedTaskFS, "install_tasks", taskDir)
 	if err != nil {
 		return nil, err
 	}

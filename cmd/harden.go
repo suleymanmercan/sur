@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -88,29 +87,6 @@ func printResults(sessionID string, results []engine.Result) {
 			fmt.Printf("      └─ %v\n", r.Err)
 		}
 	}
-}
-
-func resolveTaskDir(override string) (string, error) {
-	if override != "" {
-		return override, nil
-	}
-	// 1) ./tasks relative to binary
-	exe, err := os.Executable()
-	if err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), "tasks")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate, nil
-		}
-	}
-	// 2) /etc/sur/tasks
-	if _, err := os.Stat("/etc/sur/tasks"); err == nil {
-		return "/etc/sur/tasks", nil
-	}
-	// 3) working dir ./tasks
-	if _, err := os.Stat("tasks"); err == nil {
-		return "tasks", nil
-	}
-	return "", errors.New("could not locate tasks directory; use --tasks <dir>")
 }
 
 func init() {

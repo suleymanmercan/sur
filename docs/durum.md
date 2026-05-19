@@ -12,6 +12,8 @@ Kendi VPS'lerinde kontrollü kullanım için uygundur. Public production release
 - OS ve pre-check filtreleme.
 - SQLite session/history kaydı.
 - Check, harden, install, rollback ve history komutları.
+- Gömülü (embedded) task'lar ile harici/yerel task'ların pürüzsüz birleşimi (Truly Hybrid Loading).
+- Dinamik dosya ve shell yönetimi için Lua script desteği.
 
 ## Henüz Eksik Olanlar
 
@@ -19,7 +21,6 @@ Kendi VPS'lerinde kontrollü kullanım için uygundur. Public production release
 - GitHub release pipeline'ın gerçek release üstünde doğrulanması.
 - `check` finding -> auto-fix task mapping.
 - Apply sırasında progress/result TUI ekranı.
-- SSH/firewall gibi kritik task'larda shell string yerine daha fazla Go helper.
 - Rollback sınırlarının UI içinde daha görünür olması.
 
 ## Doğru Konumlandırma

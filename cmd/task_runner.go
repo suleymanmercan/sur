@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -34,14 +35,61 @@ type skippedTask struct {
 	Reason string
 }
 
-func loadTaskSet(fs embed.FS, embeddedDir, overrideDir string) ([]engine.Task, error) {
-	if overrideDir != "" {
-		return engine.LoadTasks(overrideDir)
+func loadTaskSet(fs embed.FS, embeddedDir, overrideDir string) ([]engine.RunnableTask, error) {
+	var merged []engine.RunnableTask
+	byID := map[string]engine.RunnableTask{}
+
+	// 1. Load embedded tasks
+	embedded, err := engine.LoadAllRunnableTasksFS(fs, embeddedDir)
+	if err == nil {
+		for _, t := range embedded {
+			byID[t.GetID()] = t
+		}
 	}
-	return engine.LoadTasksFS(fs, embeddedDir)
+
+	// 2. Load default directories if overrideDir is empty
+	if overrideDir == "" {
+		// Default system directory e.g., /etc/sur/tasks or /etc/sur/install_tasks
+		sysDir := filepath.Join("/etc/sur", embeddedDir)
+		sysTasks, err := engine.LoadAllRunnableTasks(sysDir)
+		if err == nil {
+			for _, t := range sysTasks {
+				byID[t.GetID()] = t
+			}
+		}
+
+		// Also check local directory (e.g. ./tasks or ./install_tasks)
+		localTasks, err := engine.LoadAllRunnableTasks(embeddedDir)
+		if err == nil {
+			for _, t := range localTasks {
+				byID[t.GetID()] = t
+			}
+		}
+	} else {
+		// If overrideDir is specified, it overrides everything and only loads from there
+		overrideTasks, err := engine.LoadAllRunnableTasks(overrideDir)
+		if err != nil {
+			return nil, err
+		}
+		// Clear map and only use override tasks
+		byID = map[string]engine.RunnableTask{}
+		for _, t := range overrideTasks {
+			byID[t.GetID()] = t
+		}
+	}
+
+	for _, t := range byID {
+		merged = append(merged, t)
+	}
+
+	sort.Slice(merged, func(i, j int) bool {
+		return merged[i].GetID() < merged[j].GetID()
+	})
+
+	return merged, nil
 }
 
-func runTaskSet(ctx context.Context, tasks []engine.Task, opts taskRunOptions) (string, []engine.Result, error) {
+func runTaskSet(ctx context.Context, tasks []engine.RunnableTask, opts taskRunOptions) (string, []engine.Result, error) {
 	if len(tasks) == 0 {
 		return "", nil, fmt.Errorf("no tasks found")
 	}
@@ -75,20 +123,20 @@ func runTaskSet(ctx context.Context, tasks []engine.Task, opts taskRunOptions) (
 	return sessionID, r.Apply(runCtx, sessionID, toRun), nil
 }
 
-func applicableTasks(ctx context.Context, tasks []engine.Task) ([]engine.Task, []skippedTask) {
+func applicableTasks(ctx context.Context, tasks []engine.RunnableTask) ([]engine.RunnableTask, []skippedTask) {
 	osInfo, _ := osdetect.Detect()
-	var out []engine.Task
+	var out []engine.RunnableTask
 	var skipped []skippedTask
 	for _, t := range tasks {
 		if !supportsOS(t, osInfo) {
-			skipped = append(skipped, skippedTask{ID: t.ID, Reason: unsupportedReason(osInfo)})
+			skipped = append(skipped, skippedTask{ID: t.GetID(), Reason: unsupportedReason(osInfo)})
 			continue
 		}
-		needsRun, code := engine.NeedsRun(ctx, t)
+		needsRun, code := t.NeedsRun(ctx)
 		if !needsRun {
 			skipped = append(skipped, skippedTask{
-				ID:     t.ID,
-				Reason: fmt.Sprintf("already satisfied (pre_check exit %d, expected %d)", code, t.PreCheck.ExpectExit),
+				ID:     t.GetID(),
+				Reason: fmt.Sprintf("already satisfied (pre_check exit %d)", code),
 			})
 			continue
 		}
@@ -107,8 +155,9 @@ func printSkippedTaskSummary(skipped []skippedTask) {
 	}
 }
 
-func supportsOS(t engine.Task, info *osdetect.OSInfo) bool {
-	if len(t.Distros) == 0 {
+func supportsOS(t engine.RunnableTask, info *osdetect.OSInfo) bool {
+	distros := t.GetDistros()
+	if len(distros) == 0 {
 		return true
 	}
 	if info == nil || info.ID == "" {
@@ -116,7 +165,7 @@ func supportsOS(t engine.Task, info *osdetect.OSInfo) bool {
 	}
 	id := normalizeDistro(info.ID)
 	family := normalizeDistro(string(info.Family))
-	for _, d := range t.Distros {
+	for _, d := range distros {
 		want := normalizeDistro(d)
 		if want == id || want == family {
 			return true
@@ -143,7 +192,7 @@ func normalizeDistro(v string) string {
 	return v
 }
 
-func selectTaskSet(r *engine.Runner, tasks []engine.Task, opts taskRunOptions) ([]engine.Task, string, error) {
+func selectTaskSet(r *engine.Runner, tasks []engine.RunnableTask, opts taskRunOptions) ([]engine.RunnableTask, string, error) {
 	if opts.Resume {
 		sessions, err := r.Store.ListSessions(1)
 		if err != nil {
@@ -186,7 +235,7 @@ func selectTaskSet(r *engine.Runner, tasks []engine.Task, opts taskRunOptions) (
 	return selected, sid, nil
 }
 
-func filterTasks(all []engine.Task, ids []string) ([]engine.Task, error) {
+func filterTasks(all []engine.RunnableTask, ids []string) ([]engine.RunnableTask, error) {
 	if len(ids) == 0 {
 		return all, nil
 	}
@@ -194,11 +243,11 @@ func filterTasks(all []engine.Task, ids []string) ([]engine.Task, error) {
 	for _, id := range ids {
 		want[id] = true
 	}
-	var out []engine.Task
+	var out []engine.RunnableTask
 	for _, t := range all {
-		if want[t.ID] {
+		if want[t.GetID()] {
 			out = append(out, t)
-			delete(want, t.ID)
+			delete(want, t.GetID())
 		}
 	}
 	if len(want) > 0 {

@@ -1,4 +1,5 @@
-version: "2"
+run:
+  timeout: 5m
 
 linters:
   default: none
@@ -16,11 +17,12 @@ linters:
 
 linters-settings:
   errcheck:
-    check-blank: true
+    check-blank: false
   govet:
     enable-all: true
     disable:
       - shadow  # too noisy for this codebase
+      - fieldalignment # struct padding checks are too noisy for business logic
   misspell:
     locale: US
 

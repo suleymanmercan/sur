@@ -23,6 +23,10 @@ features:
     details: "Swap, Docker, Caddy ve temel server paketleri gibi fresh-server setup task'larını seçilebilir hale getirir."
   - title: "History"
     details: "Session, task sonucu ve rollback datasını SQLite içinde kayıt altında tutar."
+  - title: "Lua & YAML Hibrit"
+    details: "Hem statik YAML adımları hem de dinamik Lua scriptleri ile gelişmiş dosya ve shell operasyonları yapılabilir."
+  - title: "Truly Hybrid Yükleme"
+    details: "Embedded task'ları local/sistem dizinlerindeki (/etc/sur/tasks) task'larla otomatik birleştirir ve override desteği sunar."
 ---
 
 ## Beta Durumu
