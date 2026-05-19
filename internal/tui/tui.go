@@ -1,4 +1,4 @@
-// Package tui renders the Bubble Tea interactive checkbox list for `sur harden`.
+// Package tui renders the Bubble Tea interactive checkbox list for sur task sets.
 package tui
 
 import (
@@ -23,10 +23,15 @@ var (
 	riskLow       = lipgloss.NewStyle().Foreground(lipgloss.Color("#7CE38B"))
 )
 
-// Run shows the picker and returns the user's selected tasks.
-// canceled=true when the user pressed q/esc.
+// Run shows the hardening picker and returns the user's selected tasks.
 func Run(tasks []engine.Task) (selected []engine.Task, canceled bool, err error) {
-	m := initialModel(tasks)
+	return RunWithTitle(tasks, "sur — choose hardening tasks")
+}
+
+// RunWithTitle shows the picker with a custom title.
+// canceled=true when the user pressed q/esc.
+func RunWithTitle(tasks []engine.Task, title string) (selected []engine.Task, canceled bool, err error) {
+	m := initialModel(tasks, title)
 	p := tea.NewProgram(m, tea.WithInput(os.Stdin), tea.WithOutput(os.Stderr))
 	out, err := p.Run()
 	if err != nil {
@@ -46,6 +51,7 @@ func Run(tasks []engine.Task) (selected []engine.Task, canceled bool, err error)
 
 type model struct {
 	tasks    []engine.Task
+	title    string
 	cursor   int
 	selected map[int]bool
 	confirm  bool
@@ -53,8 +59,8 @@ type model struct {
 	height   int
 }
 
-func initialModel(tasks []engine.Task) model {
-	return model{tasks: tasks, selected: make(map[int]bool), height: 12}
+func initialModel(tasks []engine.Task, title string) model {
+	return model{tasks: tasks, title: title, selected: make(map[int]bool), height: 12}
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -97,7 +103,7 @@ func (m model) View() string {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("sur — choose hardening tasks") + "\n\n")
+	b.WriteString(titleStyle.Render(m.title) + "\n\n")
 
 	for i, t := range m.tasks {
 		cursor := "  "

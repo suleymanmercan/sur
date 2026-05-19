@@ -16,6 +16,10 @@ Interactive Linux/VPS hardening CLI: audit a host, select fixes in a TUI, apply 
   - Opens an interactive Bubble Tea TUI.
   - Lets you select hardening tasks with checkboxes.
   - Runs each task through backup, execution, post-check validation, and rollback-on-failure steps.
+- `sur install`
+  - Opens an interactive task picker for fresh-server setup.
+  - Lets you choose optional install tasks such as swap, Docker, Caddy, and common CLI packages.
+  - Uses the same task engine and SQLite session tracking as `sur harden`.
 - SQLite state tracking
   - Uses `modernc.org/sqlite`, so the binary stays CGO-free.
   - Stores sessions, task executions, rollback metadata, and audit history.
@@ -117,6 +121,18 @@ Open interactive hardening mode:
 sudo sur harden
 ```
 
+Open interactive install mode:
+
+```bash
+sudo sur install
+```
+
+Preview install tasks:
+
+```bash
+sudo sur install --dry-run
+```
+
 Run all hardening tasks without the TUI:
 
 ```bash
@@ -127,6 +143,12 @@ Run selected tasks only:
 
 ```bash
 sudo sur harden --only disable_root_ssh,ssh_password_auth_off
+```
+
+Run selected install tasks only:
+
+```bash
+sudo sur install --only configure_swap,install_docker,install_caddy
 ```
 
 Use a custom task directory or state database:
@@ -165,12 +187,18 @@ sudo sur harden --dry-run --json
 | `sur harden --yes` | Apply every task without opening the TUI. |
 | `sur harden --only <ids>` | Apply only comma-separated task IDs. |
 | `sur harden --resume` | Resume the latest unfinished session. |
+| `sur install` | Select and apply server install tasks interactively. |
+| `sur install --dry-run` | Show the planned install run without changing the host. |
+| `sur install --yes` | Apply every install task without opening the TUI. |
+| `sur install --only <ids>` | Apply only comma-separated install task IDs. |
 | `sur rollback <session-id>` | Roll back a session in reverse execution order. |
 | `sur history` | List previous sessions. |
 
 ## Task System
 
-Hardening operations are defined as YAML task files under `tasks/`.
+Hardening operations are defined as YAML task files under `tasks/`. Fresh-server install operations are defined under `install_tasks/`.
+
+Both task sets are embedded into the Go binary and executed by the same internal engine. `sur` does not call Ansible. For each selected YAML task, it runs the configured shell commands directly on the local host with `sh -c`.
 
 Example:
 
@@ -213,6 +241,8 @@ success or rollback
 
 ## Built-In Tasks
 
+### Hardening
+
 | Task ID | Description | Risk |
 | --- | --- | --- |
 | `disable_root_ssh` | Sets `PermitRootLogin no` in SSH config. | low |
@@ -220,6 +250,15 @@ success or rollback
 | `enable_ufw` | Allows SSH and enables UFW. | high |
 | `install_fail2ban` | Installs and enables fail2ban. | low |
 | `unattended_upgrades` | Enables automatic security updates on Debian/Ubuntu. | low |
+
+### Install
+
+| Task ID | Description | Risk |
+| --- | --- | --- |
+| `server_basics` | Installs common CLI packages such as curl, git, unzip, jq, and htop. | low |
+| `configure_swap` | Creates and persists a `/swapfile`; defaults to 2G and can be changed with `SUR_SWAP_SIZE` or `SUR_SWAP_MB`. | medium |
+| `install_docker` | Installs Docker Engine and the Compose plugin from Docker's package repository. | medium |
+| `install_caddy` | Installs and enables the Caddy web server. | low |
 
 ## Supported Distributions
 
@@ -241,6 +280,7 @@ sur/
 │   ├── root
 │   ├── check
 │   ├── harden
+│   ├── install
 │   ├── rollback
 │   └── history
 ├── internal/
@@ -252,6 +292,7 @@ sur/
 │   ├── tui/            # Bubble Tea interface
 │   └── common/         # Shared models/types
 ├── tasks/              # YAML hardening tasks
+├── install_tasks/      # YAML install/setup tasks
 ├── docs/               # Static landing/docs page
 └── Makefile
 ```

@@ -1,22 +1,17 @@
 package cmd
 
 import (
-	"context"
 	"embed"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/suleymanmercan/sur/internal/engine"
 	"github.com/suleymanmercan/sur/internal/store"
-	"github.com/suleymanmercan/sur/internal/tui"
 )
 
 var embeddedTaskFS embed.FS
@@ -43,38 +38,26 @@ var hardenCmd = &cobra.Command{
 			return errors.New("sur harden requires root privileges (run with sudo) — or pass --dry-run")
 		}
 
-		var tasks []engine.Task
-		var err error
-
-		if taskDir != "" {
-			tasks, err = engine.LoadTasks(taskDir)
-		} else {
-			tasks, err = engine.LoadTasksFS(embeddedTaskFS, "tasks")
-		}
+		tasks, err := loadTaskSet(embeddedTaskFS, "tasks", taskDir)
 		if err != nil {
 			return err
 		}
-		if len(tasks) == 0 {
-			return fmt.Errorf("no tasks found")
-		}
-
-		s, err := store.Open(stateFile)
-		if err != nil {
+		sessionID, results, err := runTaskSet(cmd.Context(), tasks, taskRunOptions{
+			DryRun:   dryRun,
+			Yes:      yesFlag,
+			Resume:   resume,
+			All:      allowAll,
+			OnlyIDs:  onlyIDs,
+			State:    stateFile,
+			Timeout:  30 * time.Minute,
+			TUITitle: "sur — choose hardening tasks",
+		})
+		if err != nil || results == nil {
 			return err
 		}
-		defer s.Close()
-
-		r := &engine.Runner{Store: s, DryRun: dryRun}
-
-		// pick which tasks to run
-		toRun, sessionID, err := selectTasks(r, tasks)
-		if err != nil || toRun == nil {
-			return err
+		if len(results) == 0 {
+			return nil
 		}
-
-		ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Minute)
-		defer cancel()
-		results := r.Apply(ctx, sessionID, toRun)
 
 		if jsonOutput {
 			return emitJSON(map[string]any{
@@ -85,75 +68,6 @@ var hardenCmd = &cobra.Command{
 		printResults(sessionID, results)
 		return nil
 	},
-}
-
-func selectTasks(r *engine.Runner, tasks []engine.Task) ([]engine.Task, string, error) {
-	// --resume picks up the last running session
-	if resume {
-		sessions, err := r.Store.ListSessions(1)
-		if err != nil {
-			return nil, "", err
-		}
-		if len(sessions) == 0 || sessions[0].Status != store.SessionRunning {
-			return nil, "", errors.New("no resumable session found")
-		}
-		fmt.Println("Resuming session", sessions[0].ID)
-		// (MVP: re-run every task; engine.pre_check will skip already-applied ones)
-		sid := sessions[0].ID
-		return tasks, sid, nil
-	}
-
-	sid, err := r.StartSession()
-	if err != nil {
-		return nil, "", err
-	}
-
-	// non-interactive paths
-	if yesFlag || allowAll || len(onlyIDs) > 0 || !term.IsTerminal(int(os.Stdin.Fd())) {
-		filtered, err := filterTasks(tasks, onlyIDs)
-		if err != nil {
-			_ = r.Store.FinishSession(sid, store.SessionFailed)
-			return nil, "", err
-		}
-		return filtered, sid, nil
-	}
-
-	selected, canceled, err := tui.Run(tasks)
-	if err != nil {
-		return nil, "", err
-	}
-	if canceled || len(selected) == 0 {
-		fmt.Println("Aborted — nothing applied.")
-		_ = r.Store.FinishSession(sid, store.SessionFailed)
-		return nil, "", nil
-	}
-	return selected, sid, nil
-}
-
-func filterTasks(all []engine.Task, ids []string) ([]engine.Task, error) {
-	if len(ids) == 0 {
-		return all, nil
-	}
-	want := map[string]bool{}
-	for _, id := range ids {
-		want[id] = true
-	}
-	var out []engine.Task
-	for _, t := range all {
-		if want[t.ID] {
-			out = append(out, t)
-			delete(want, t.ID)
-		}
-	}
-	if len(want) > 0 {
-		var missing []string
-		for id := range want {
-			missing = append(missing, id)
-		}
-		sort.Strings(missing)
-		return nil, fmt.Errorf("unknown task id(s): %s", strings.Join(missing, ", "))
-	}
-	return out, nil
 }
 
 func printResults(sessionID string, results []engine.Result) {

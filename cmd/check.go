@@ -93,7 +93,7 @@ func renderReport(osInfo *osdetect.OSInfo, r common.Report) {
 		icon := statusIcon(f.Status)
 		title := truncate(f.Title, titleW)
 		fmt.Printf("%-8s %-*s %s\n", icon, idW, truncate(f.ID, idW), title)
-		if f.Status == common.StatusFail && f.Remediation != "" {
+		if f.Status != common.StatusPass && f.Remediation != "" {
 			fmt.Println(dim.Render("         → " + f.Remediation))
 		}
 	}
@@ -109,7 +109,7 @@ func renderReport(osInfo *osdetect.OSInfo, r common.Report) {
 	style := lipgloss.NewStyle().Bold(true).Foreground(scoreColor)
 	fmt.Println(style.Render(fmt.Sprintf("Score: %d/%d   Issues: %d", r.Score, r.MaxScore, r.Issues)))
 	if r.Issues > 0 {
-		fmt.Println(dim.Render("Run `sur harden` to fix interactively."))
+		fmt.Println(dim.Render("Run `sur harden` for supported automatic fixes; review remaining WARN items manually."))
 	}
 }
 

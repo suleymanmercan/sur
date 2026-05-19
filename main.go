@@ -6,7 +6,7 @@ import (
 	"github.com/suleymanmercan/sur/cmd"
 )
 
-//go:embed tasks/*.yaml
+//go:embed tasks/*.yaml install_tasks/*.yaml
 var taskFS embed.FS
 
 func main() {

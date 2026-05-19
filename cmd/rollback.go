@@ -48,7 +48,15 @@ func loadRollbackTasks() ([]engine.Task, error) {
 	if taskDir != "" {
 		return engine.LoadTasks(taskDir)
 	}
-	return engine.LoadTasksFS(embeddedTaskFS, "tasks")
+	tasks, err := engine.LoadTasksFS(embeddedTaskFS, "tasks")
+	if err != nil {
+		return nil, err
+	}
+	installTasks, err := engine.LoadTasksFS(embeddedTaskFS, "install_tasks")
+	if err != nil {
+		return nil, err
+	}
+	return append(tasks, installTasks...), nil
 }
 
 var historyCmd = &cobra.Command{

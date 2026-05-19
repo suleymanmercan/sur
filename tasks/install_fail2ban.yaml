@@ -7,8 +7,8 @@ risk_level: low
 distros: [ubuntu, debian, rocky, alma, fedora]
 
 pre_check:
-  command: "command -v fail2ban-client >/dev/null 2>&1"
-  expect_exit: 1   # 1 = not installed yet => fix needed
+  command: "! systemctl is-active --quiet fail2ban"
+  expect_exit: 0   # 0 = missing or inactive => fix needed
 
 exec:
   - command: "(command -v apt-get >/dev/null && DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y fail2ban) || (command -v dnf >/dev/null && dnf install -y epel-release && dnf install -y fail2ban) || (command -v yum >/dev/null && yum install -y fail2ban)"

@@ -130,6 +130,15 @@ type Result struct {
 	Duration time.Duration
 }
 
+// NeedsRun reports whether a task's pre_check says there is work to do.
+func NeedsRun(ctx context.Context, t Task) (bool, int) {
+	if t.PreCheck.Command == "" {
+		return true, 0
+	}
+	_, code := runShell(ctx, t.PreCheck.Command)
+	return code == t.PreCheck.ExpectExit, code
+}
+
 // Runner executes tasks and records state.
 type Runner struct {
 	Store    *store.Store
@@ -203,13 +212,15 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t Task) Result {
 	}
 
 	// 1. pre_check (informational; skip when already satisfied)
-	if t.PreCheck.Command != "" {
-		_, code := runShell(ctx, t.PreCheck.Command)
-		if code != t.PreCheck.ExpectExit {
-			r.log("[%s] pre_check did not match expected state, skipping", t.ID)
+	needsRun, code := NeedsRun(ctx, t)
+	if !needsRun {
+		msg := fmt.Sprintf("already satisfied or not applicable (pre_check exit %d, expected %d)", code, t.PreCheck.ExpectExit)
+		if t.PreCheck.Command != "" {
+			r.log("[%s] %s", t.ID, msg)
 			rec.Status = store.TaskSkipped
+			rec.ErrorMessage = msg
 			_ = r.Store.RecordTask(rec)
-			return Result{TaskID: t.ID, Status: store.TaskSkipped, Duration: time.Since(start)}
+			return Result{TaskID: t.ID, Status: store.TaskSkipped, Err: fmt.Errorf("%s", msg), Duration: time.Since(start)}
 		}
 	}
 

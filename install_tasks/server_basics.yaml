@@ -1,0 +1,20 @@
+id: server_basics
+name: "Install common server CLI packages"
+description: "Installs curl, git, unzip, jq, htop, and certificate utilities."
+rollback_possible: false
+backup_files: []
+risk_level: low
+distros: [ubuntu, debian, rocky, alma, fedora, opensuse]
+
+pre_check:
+  command: "missing=0; for pkg in curl git unzip jq htop; do command -v \"$pkg\" >/dev/null 2>&1 || missing=1; done; exit \"$missing\""
+  expect_exit: 1
+
+exec:
+  - command: "(command -v apt-get >/dev/null 2>&1 && DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git unzip jq htop) || (command -v dnf >/dev/null 2>&1 && dnf install -y ca-certificates curl git unzip jq htop) || (command -v yum >/dev/null 2>&1 && yum install -y ca-certificates curl git unzip jq htop) || (command -v zypper >/dev/null 2>&1 && zypper -n install ca-certificates curl git unzip jq htop)"
+
+post_check:
+  command: "command -v curl >/dev/null 2>&1 && command -v git >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v jq >/dev/null 2>&1"
+  expect_exit: 0
+
+rollback: []

@@ -8,7 +8,7 @@ risk_level: low
 distros: [ubuntu, debian, rocky, alma, fedora]
 
 pre_check:
-  command: "! grep -Eiq '^[[:space:]]*PermitRootLogin[[:space:]]+no\\b' /etc/ssh/sshd_config"
+  command: "! (sshd -T 2>/dev/null | grep -Eiq '^permitrootlogin[[:space:]]+no\\b' || grep -Eiq '^[[:space:]]*PermitRootLogin[[:space:]]+no\\b' /etc/ssh/sshd_config)"
   expect_exit: 0
 
 exec:

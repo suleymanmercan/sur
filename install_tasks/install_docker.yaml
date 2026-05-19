@@ -1,0 +1,21 @@
+id: install_docker
+name: "Install Docker Engine"
+description: "Installs Docker Engine and the Compose plugin from Docker's package repository."
+rollback_possible: false
+backup_files: []
+risk_level: medium
+distros: [ubuntu, debian, rocky, alma, fedora]
+
+pre_check:
+  command: "command -v docker >/dev/null 2>&1"
+  expect_exit: 1
+
+exec:
+  - command: "if command -v apt-get >/dev/null 2>&1; then . /etc/os-release; codename=\"${UBUNTU_CODENAME:-$VERSION_CODENAME}\"; DEBIAN_FRONTEND=noninteractive apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl; install -m 0755 -d /etc/apt/keyrings; curl -fsSL \"https://download.docker.com/linux/${ID}/gpg\" -o /etc/apt/keyrings/docker.asc; chmod a+r /etc/apt/keyrings/docker.asc; printf 'Types: deb\\nURIs: https://download.docker.com/linux/%s\\nSuites: %s\\nComponents: stable\\nArchitectures: %s\\nSigned-By: /etc/apt/keyrings/docker.asc\\n' \"$ID\" \"$codename\" \"$(dpkg --print-architecture)\" > /etc/apt/sources.list.d/docker.sources; DEBIAN_FRONTEND=noninteractive apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; elif command -v dnf >/dev/null 2>&1; then . /etc/os-release; repo=centos; test \"$ID\" = fedora && repo=fedora; dnf install -y dnf-plugins-core; dnf config-manager --add-repo \"https://download.docker.com/linux/${repo}/docker-ce.repo\"; dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; elif command -v yum >/dev/null 2>&1; then yum install -y yum-utils; yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; else echo 'supported package manager not found'; exit 1; fi"
+  - command: "systemctl enable --now docker"
+
+post_check:
+  command: "systemctl is-active --quiet docker && docker version >/dev/null 2>&1"
+  expect_exit: 0
+
+rollback: []

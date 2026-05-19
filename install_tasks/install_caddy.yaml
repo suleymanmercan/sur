@@ -1,0 +1,21 @@
+id: install_caddy
+name: "Install Caddy web server"
+description: "Installs Caddy and enables the service."
+rollback_possible: false
+backup_files: []
+risk_level: low
+distros: [ubuntu, debian, rocky, alma, fedora]
+
+pre_check:
+  command: "command -v caddy >/dev/null 2>&1"
+  expect_exit: 1
+
+exec:
+  - command: "if command -v apt-get >/dev/null 2>&1; then DEBIAN_FRONTEND=noninteractive apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl gnupg; curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg; curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt -o /etc/apt/sources.list.d/caddy-stable.list; chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg /etc/apt/sources.list.d/caddy-stable.list; DEBIAN_FRONTEND=noninteractive apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y caddy; elif command -v dnf >/dev/null 2>&1; then dnf install -y dnf5-plugins || dnf install -y dnf-plugins-core; dnf copr enable -y @caddy/caddy; dnf install -y caddy; elif command -v yum >/dev/null 2>&1; then yum install -y yum-plugin-copr || true; yum copr enable -y @caddy/caddy || true; yum install -y caddy; else echo 'supported package manager not found'; exit 1; fi"
+  - command: "systemctl enable --now caddy"
+
+post_check:
+  command: "command -v caddy >/dev/null 2>&1 && systemctl is-enabled --quiet caddy"
+  expect_exit: 0
+
+rollback: []

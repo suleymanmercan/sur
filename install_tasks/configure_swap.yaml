@@ -1,0 +1,29 @@
+id: configure_swap
+name: "Configure swap file"
+description: "Creates /swapfile and persists it in /etc/fstab. Set SUR_SWAP_SIZE or SUR_SWAP_MB to override the default 2G size."
+rollback_possible: true
+backup_files:
+  - /etc/fstab
+risk_level: medium
+distros: [ubuntu, debian, rocky, alma, fedora, opensuse]
+
+pre_check:
+  command: "swapon --show --noheadings | grep -q ."
+  expect_exit: 1
+
+exec:
+  - command: "test ! -e /swapfile || { echo '/swapfile exists but swap is not active'; exit 1; }"
+  - command: "fallocate -l \"${SUR_SWAP_SIZE:-2G}\" /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=\"${SUR_SWAP_MB:-2048}\""
+  - command: "chmod 600 /swapfile"
+  - command: "mkswap /swapfile"
+  - command: "swapon /swapfile"
+  - command: "grep -qE '^[[:space:]]*/swapfile[[:space:]]+none[[:space:]]+swap[[:space:]]+' /etc/fstab || printf '/swapfile none swap sw 0 0\\n' >> /etc/fstab"
+
+post_check:
+  command: "swapon --show --noheadings | grep -q '/swapfile'"
+  expect_exit: 0
+
+rollback:
+  - command: "swapoff /swapfile 2>/dev/null || true"
+  - command: "rm -f /swapfile"
+  - command: "cp {backup_path} /etc/fstab"
