@@ -41,19 +41,23 @@ sur installer
 
 Usage:
   install.sh
+  install.sh --update
   install.sh --uninstall
   install.sh --uninstall --purge
 
 Options:
+  --update     download and replace the installed binary with the latest release
   --uninstall  remove the installed sur binary
   --purge      with --uninstall, also remove ${LEGACY_TASK_DIR} and ${STATE_DIR}
 EOF
 }
 
+UPDATE=0
 UNINSTALL=0
 PURGE=0
 for arg in "$@"; do
   case "$arg" in
+    --update) UPDATE=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --purge) PURGE=1 ;;
     -h|--help) usage; exit 0 ;;
@@ -101,6 +105,9 @@ URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
 CHECKSUM_URL="${URL}.sha256"
 
 info "detected: linux/${ARCH}"
+if [ "$UPDATE" -eq 1 ] && [ -x "${INSTALL_DIR}/${BINARY}" ]; then
+  info "current: $("${INSTALL_DIR}/${BINARY}" --version 2>/dev/null || printf 'unknown')"
+fi
 info "downloading $ASSET..."
 
 # download
@@ -127,4 +134,5 @@ if ! "${INSTALL_DIR}/${BINARY}" --version >/dev/null 2>&1; then
 fi
 
 ok "sur installed to ${INSTALL_DIR}/${BINARY}"
+info "version: $("${INSTALL_DIR}/${BINARY}" --version 2>/dev/null || printf 'unknown')"
 info "run: sur check"
