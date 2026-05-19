@@ -3,7 +3,7 @@ run:
   go: "1.24"
 
 linters:
-  default: none
+  disable-all: true
   enable:
     - errcheck       # unhandled errors
     - gosimple       # simplification suggestions
