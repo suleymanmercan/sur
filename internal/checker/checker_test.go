@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/suleymanmercan/sur/internal/common"
@@ -48,5 +50,46 @@ PasswordAuthentication yes
 	}
 	if v := sshdConfigValue(cfg, "Missing"); v != "" {
 		t.Fatalf("Missing = %q", v)
+	}
+}
+
+// TestSshdConfigValue_LastWins verifies that when the same key appears
+// multiple times the last occurrence wins (matching sshd include order).
+func TestSshdConfigValue_LastWins(t *testing.T) {
+	cfg := "PasswordAuthentication yes\nPasswordAuthentication no\n"
+	if v := sshdConfigValue(cfg, "PasswordAuthentication"); v != "no" {
+		t.Fatalf("expected last value 'no', got %q", v)
+	}
+}
+
+// TestSshdConfigValueFromFiles_FallbackToMain verifies that when no
+// sshd_config.d drop-in files exist, the main config value is returned.
+func TestSshdConfigValueFromFiles_FallbackToMain(t *testing.T) {
+	mainCfg := "PasswordAuthentication yes\n"
+	val := sshdConfigValueFromFiles(mainCfg, "PasswordAuthentication")
+	if val != "yes" {
+		t.Fatalf("expected 'yes' from main config, got %q", val)
+	}
+}
+
+// TestSshdConfigValueFromFiles_DropinFile writes an actual drop-in file
+// and verifies it overrides the main config value.
+// This test requires root and a Linux host with /etc/ssh/sshd_config.d.
+func TestSshdConfigValueFromFiles_DropinFile(t *testing.T) {
+	dropinDir := "/etc/ssh/sshd_config.d"
+	if _, err := os.Stat(dropinDir); err != nil {
+		t.Skip("sshd_config.d not present; skipping drop-in override test")
+	}
+
+	tmp := filepath.Join(dropinDir, "99-sur-test.conf")
+	if err := os.WriteFile(tmp, []byte("PermitRootLogin no\n"), 0o644); err != nil {
+		t.Skipf("cannot write to %s (not root?): %v", dropinDir, err)
+	}
+	t.Cleanup(func() { _ = os.Remove(tmp) })
+
+	mainCfg := "PermitRootLogin yes\n"
+	val := sshdConfigValueFromFiles(mainCfg, "PermitRootLogin")
+	if val != "no" {
+		t.Fatalf("drop-in should override to 'no', got %q", val)
 	}
 }

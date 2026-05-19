@@ -9,6 +9,7 @@ import (
 
 var (
 	jsonOutput bool
+	Version    = "dev"
 )
 
 var rootCmd = &cobra.Command{
@@ -17,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Long: `sur is a local, interactive Linux hardening tool.
 It audits your system, lets you pick hardening tasks via a TUI,
 applies them safely with backup + rollback, and tracks state in SQLite.`,
-	Version: "0.1.0",
+	Version: Version,
 }
 
 // Execute runs the root cobra command.

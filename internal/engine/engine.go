@@ -313,6 +313,10 @@ func (r *Runner) rollbackTask(ctx context.Context, t Task, backupPath string, bl
 
 // RollbackSession replays the rollback for every task in the session,
 // in reverse order. Tasks marked rollback_possible=false are skipped.
+//
+// Deprecated: RollbackSession can only load tasks from disk and will fail
+// on production installs that use the embedded task FS. Use
+// RollbackSessionTasks with tasks loaded via engine.LoadTasksFS instead.
 func (r *Runner) RollbackSession(ctx context.Context, sessionID string, taskDir string) ([]Result, error) {
 	tasks, err := LoadTasks(taskDir)
 	if err != nil {

@@ -1,7 +1,7 @@
 id: enable_ufw
 name: "Enable UFW with basic rules"
 description: "Installs UFW when needed, allows SSH, and enables UFW. Warning: closes all other inbound traffic."
-rollback_possible: false
+rollback_possible: true
 backup_files: []
 risk_level: high
 distros: [ubuntu, debian]

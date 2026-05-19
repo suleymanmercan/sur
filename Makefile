@@ -5,9 +5,11 @@ GO     := go
 PREFIX ?= /usr/local
 STATE_DIR ?= /var/lib/sur
 LEGACY_TASK_DIR ?= /etc/sur
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo dev)
+LDFLAGS := -s -w -X github.com/suleymanmercan/sur/cmd.Version=$(VERSION)
 
 build:
-	$(GO) build -trimpath -ldflags "-s -w" -o $(BINARY) .
+	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test:
 	$(GO) test ./... -count=1

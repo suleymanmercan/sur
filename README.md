@@ -69,7 +69,7 @@ Build from source:
 ```bash
 git clone https://github.com/suleymanmercan/sur.git
 cd sur
-go build -trimpath -ldflags "-s -w" -o sur .
+make build
 sudo install -m 0755 sur /usr/local/bin/sur
 ```
 

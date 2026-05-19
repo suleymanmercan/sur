@@ -19,8 +19,10 @@ jobs:
 
             - name: Build binaries
               run: |
-                  GOOS=linux GOARCH=amd64 go build -o sur-linux-amd64 .
-                  GOOS=linux GOARCH=arm64 go build -o sur-linux-arm64 .
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  LDFLAGS="-s -w -X github.com/suleymanmercan/sur/cmd.Version=${VERSION}"
+                  GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "${LDFLAGS}" -o sur-linux-amd64 .
+                  GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "${LDFLAGS}" -o sur-linux-arm64 .
                   sha256sum sur-linux-amd64 > sur-linux-amd64.sha256
                   sha256sum sur-linux-arm64 > sur-linux-arm64.sha256
 

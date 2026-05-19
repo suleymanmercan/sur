@@ -1,0 +1,26 @@
+id: enable_firewalld
+name: "Enable firewalld with SSH rule"
+description: >
+  Installs firewalld when needed, permanently allows the SSH service,
+  and enables/starts the daemon. Warning: closes all other inbound traffic.
+rollback_possible: false
+backup_files: []
+risk_level: high
+distros: [rocky, alma, fedora, rhel, centos]
+
+pre_check:
+  command: "! (command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state 2>/dev/null | grep -q '^running')"
+  expect_exit: 0
+
+exec:
+  - command: "command -v firewall-cmd >/dev/null 2>&1 || dnf install -y firewalld"
+  - command: "systemctl enable --now firewalld"
+  - command: "firewall-cmd --permanent --add-service=ssh"
+  - command: "firewall-cmd --reload"
+
+post_check:
+  command: "firewall-cmd --state 2>/dev/null | grep -q '^running'"
+  expect_exit: 0
+
+rollback:
+  - command: "systemctl disable --now firewalld || true"

@@ -1,0 +1,26 @@
+id: dnf_automatic
+name: "Enable automatic security updates (dnf-automatic)"
+description: >
+  Installs dnf-automatic and enables the daily timer so security patches
+  apply automatically on RHEL-family systems.
+rollback_possible: false
+backup_files: []
+risk_level: low
+distros: [rocky, alma, fedora, rhel, centos]
+
+pre_check:
+  command: "command -v dnf >/dev/null 2>&1 && ! systemctl is-active --quiet dnf-automatic.timer"
+  expect_exit: 0
+
+exec:
+  - command: "dnf install -y dnf-automatic"
+  - command: >
+      sed -i 's/^apply_updates\s*=.*/apply_updates = yes/' /etc/dnf/automatic.conf
+  - command: "systemctl enable --now dnf-automatic.timer"
+
+post_check:
+  command: "systemctl is-active --quiet dnf-automatic.timer"
+  expect_exit: 0
+
+rollback:
+  - command: "systemctl disable --now dnf-automatic.timer || true"

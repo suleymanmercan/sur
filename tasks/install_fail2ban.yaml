@@ -1,7 +1,7 @@
 id: install_fail2ban
 name: "Install and enable fail2ban"
 description: "Installs fail2ban via the local package manager and enables the service."
-rollback_possible: true
+rollback_possible: false
 backup_files: []
 risk_level: low
 distros: [ubuntu, debian, rocky, alma, fedora]

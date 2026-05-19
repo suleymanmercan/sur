@@ -1,0 +1,20 @@
+id: system_upgrade
+name: "Update and Upgrade System Packages"
+description: "Updates the package database and upgrades all installed packages to their latest versions."
+rollback_possible: false
+backup_files: []
+risk_level: high
+distros: [ubuntu, debian, rocky, alma, fedora, opensuse]
+
+pre_check:
+  command: "echo 'Ready to perform system upgrade'"
+  expect_exit: 0
+
+exec:
+  - command: "if command -v apt-get >/dev/null 2>&1; then DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y; elif command -v dnf >/dev/null 2>&1; then dnf upgrade -y; elif command -v yum >/dev/null 2>&1; then yum update -y; elif command -v zypper >/dev/null 2>&1; then zypper -n update; else echo 'No supported package manager found'; exit 1; fi"
+
+post_check:
+  command: "exit 0"
+  expect_exit: 0
+
+rollback: []

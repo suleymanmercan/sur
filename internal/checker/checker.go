@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/suleymanmercan/sur/internal/common"
@@ -80,6 +81,8 @@ func readFile(p string) (string, error) {
 	return string(b), nil
 }
 
+// sshdConfigValue parses key from the main sshd_config content string.
+// It returns the last matching value (later entries override earlier ones).
 func sshdConfigValue(content, key string) string {
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	val := ""
@@ -99,10 +102,35 @@ func sshdConfigValue(content, key string) string {
 	return val
 }
 
+// sshdConfigValueFromFiles reads the main sshd_config and all drop-in
+// files under /etc/ssh/sshd_config.d/*.conf (Ubuntu 22.04+, Debian 12+).
+// The last matching value wins — same precedence as sshd itself applies.
+func sshdConfigValueFromFiles(mainContent, key string) string {
+	val := sshdConfigValue(mainContent, key)
+
+	// Walk drop-in directory; ignore errors (directory may not exist).
+	matches, _ := filepath.Glob("/etc/ssh/sshd_config.d/*.conf")
+	for _, p := range matches {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if v := sshdConfigValue(string(b), key); v != "" {
+			val = v
+		}
+	}
+	return val
+}
+
+// sshdEffectiveValues runs `sshd -T` to get the fully-merged runtime
+// configuration. Returns an empty (non-nil) map when sshd -T fails
+// (e.g. non-root caller on some distros) so callers can fall back to
+// file parsing without triggering a nil-map panic.
 func sshdEffectiveValues(ctx context.Context) map[string]string {
 	out, code, err := runCmd(ctx, "sshd", "-T")
 	if err != nil || code != 0 {
-		return nil
+		// sshd -T may require root; fall back to file-based parsing silently.
+		return map[string]string{}
 	}
 	values := map[string]string{}
 	scanner := bufio.NewScanner(strings.NewReader(out))
@@ -116,11 +144,14 @@ func sshdEffectiveValues(ctx context.Context) map[string]string {
 	return values
 }
 
+// sshdValue resolves a config key using the following priority:
+// 1. sshd -T effective output (most accurate, requires root)
+// 2. main sshd_config + sshd_config.d/*.conf drop-ins
 func sshdValue(effective map[string]string, content, key string) string {
 	if v := effective[strings.ToLower(key)]; v != "" {
 		return v
 	}
-	return sshdConfigValue(content, key)
+	return sshdConfigValueFromFiles(content, key)
 }
 
 func runCmd(ctx context.Context, name string, args ...string) (string, int, error) {
