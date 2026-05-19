@@ -99,6 +99,30 @@ func sshdConfigValue(content, key string) string {
 	return val
 }
 
+func sshdEffectiveValues(ctx context.Context) map[string]string {
+	out, code, err := runCmd(ctx, "sshd", "-T")
+	if err != nil || code != 0 {
+		return nil
+	}
+	values := map[string]string{}
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		values[strings.ToLower(fields[0])] = fields[1]
+	}
+	return values
+}
+
+func sshdValue(effective map[string]string, content, key string) string {
+	if v := effective[strings.ToLower(key)]; v != "" {
+		return v
+	}
+	return sshdConfigValue(content, key)
+}
+
 func runCmd(ctx context.Context, name string, args ...string) (string, int, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	out, err := cmd.CombinedOutput()
@@ -137,7 +161,8 @@ func CheckSSH(ctx context.Context) []common.Finding {
 	}
 
 	var out []common.Finding
-	rootLogin := strings.ToLower(sshdConfigValue(content, "PermitRootLogin"))
+	effective := sshdEffectiveValues(ctx)
+	rootLogin := strings.ToLower(sshdValue(effective, content, "PermitRootLogin"))
 	if rootLogin == "" || rootLogin == "yes" {
 		out = append(out, common.Finding{
 			ID: "ssh.root_login", Category: "SSH",
@@ -156,7 +181,7 @@ func CheckSSH(ctx context.Context) []common.Finding {
 		})
 	}
 
-	passAuth := strings.ToLower(sshdConfigValue(content, "PasswordAuthentication"))
+	passAuth := strings.ToLower(sshdValue(effective, content, "PasswordAuthentication"))
 	if passAuth != "no" {
 		out = append(out, common.Finding{
 			ID: "ssh.password_auth", Category: "SSH",
@@ -175,7 +200,7 @@ func CheckSSH(ctx context.Context) []common.Finding {
 		})
 	}
 
-	port := sshdConfigValue(content, "Port")
+	port := sshdValue(effective, content, "Port")
 	if port == "" || port == "22" {
 		out = append(out, common.Finding{
 			ID: "ssh.port", Category: "SSH",

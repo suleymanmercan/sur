@@ -15,16 +15,20 @@ jobs:
 
             - uses: actions/setup-go@v5
               with:
-                  go-version: "1.22"
+                  go-version-file: go.mod
 
             - name: Build binaries
               run: |
-                  GOOS=linux GOARCH=amd64 go build -o ../sur-linux-amd64 .
-                  GOOS=linux GOARCH=arm64 go build -o ../sur-linux-arm64 .
+                  GOOS=linux GOARCH=amd64 go build -o sur-linux-amd64 .
+                  GOOS=linux GOARCH=arm64 go build -o sur-linux-arm64 .
+                  sha256sum sur-linux-amd64 > sur-linux-amd64.sha256
+                  sha256sum sur-linux-arm64 > sur-linux-arm64.sha256
 
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
                   files: |
                       sur-linux-amd64
+                      sur-linux-amd64.sha256
                       sur-linux-arm64
+                      sur-linux-arm64.sha256

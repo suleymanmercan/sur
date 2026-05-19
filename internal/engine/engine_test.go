@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/suleymanmercan/sur/internal/store"
 )
@@ -109,5 +110,84 @@ func TestApply_DryRun(t *testing.T) {
 	}
 	if _, err := os.Stat(target); err == nil {
 		t.Fatal("dry-run created file")
+	}
+}
+
+func TestApply_DryRunDoesNotStoreBackupData(t *testing.T) {
+	r, _ := newRunner(t)
+	r.DryRun = true
+	backupFile := filepath.Join(t.TempDir(), "cfg")
+	writeFile(t, backupFile, "SECRET")
+	sid, _ := r.StartSession()
+
+	_ = r.Apply(context.Background(), sid, []Task{{
+		ID:          "dry_backup",
+		BackupFiles: []string{backupFile},
+		Exec:        Phase{{Command: "true"}},
+	}})
+
+	execs, err := r.Store.TasksForSession(sid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(execs) != 1 {
+		t.Fatalf("expected one execution, got %d", len(execs))
+	}
+	if len(execs[0].BackupData) != 0 || execs[0].BackupPath != "" {
+		t.Fatalf("dry-run stored backup data: %+v", execs[0])
+	}
+}
+
+func TestApply_PreCheckMismatchSkipsForAnyExpectedExit(t *testing.T) {
+	r, _ := newRunner(t)
+	target := filepath.Join(t.TempDir(), "noop")
+	sid, _ := r.StartSession()
+
+	res := r.Apply(context.Background(), sid, []Task{{
+		ID:       "already_done",
+		PreCheck: PreCheck{Command: "true", ExpectExit: 1},
+		Exec:     Phase{{Command: "touch " + target}},
+	}})
+
+	if res[0].Status != store.TaskSkipped {
+		t.Fatalf("expected skipped, got %s", res[0].Status)
+	}
+	if _, err := os.Stat(target); err == nil {
+		t.Fatal("pre-check mismatch should not execute task")
+	}
+}
+
+func TestRollbackSessionTasksSkipsSkippedExecutions(t *testing.T) {
+	r, _ := newRunner(t)
+	backupFile := filepath.Join(t.TempDir(), "cfg")
+	writeFile(t, backupFile, "CURRENT")
+	sid, _ := r.StartSession()
+
+	if err := r.Store.RecordTask(store.TaskExecution{
+		ID:               "exec-1",
+		SessionID:        sid,
+		TaskID:           "skip_me",
+		Status:           store.TaskSkipped,
+		RollbackPossible: true,
+		BackupPath:       backupFile,
+		BackupData:       []byte("OLD"),
+		ExecutedAt:       time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	results, err := r.RollbackSessionTasks(context.Background(), sid, []Task{{
+		ID:               "skip_me",
+		RollbackPossible: true,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || results[0].Status != store.TaskSkipped {
+		t.Fatalf("results = %+v", results)
+	}
+	got, _ := os.ReadFile(backupFile)
+	if string(got) != "CURRENT" {
+		t.Fatalf("skipped execution was rolled back, content = %q", got)
 	}
 }

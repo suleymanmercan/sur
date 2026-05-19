@@ -22,7 +22,7 @@ var rollbackCmd = &cobra.Command{
 		}
 		defer s.Close()
 
-		dir, err := resolveTaskDir(taskDir)
+		tasks, err := loadRollbackTasks()
 		if err != nil {
 			return err
 		}
@@ -30,7 +30,7 @@ var rollbackCmd = &cobra.Command{
 
 		ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 		defer cancel()
-		results, err := r.RollbackSession(ctx, args[0], dir)
+		results, err := r.RollbackSessionTasks(ctx, args[0], tasks)
 		if err != nil {
 			return err
 		}
@@ -42,6 +42,13 @@ var rollbackCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func loadRollbackTasks() ([]engine.Task, error) {
+	if taskDir != "" {
+		return engine.LoadTasks(taskDir)
+	}
+	return engine.LoadTasksFS(embeddedTaskFS, "tasks")
 }
 
 var historyCmd = &cobra.Command{

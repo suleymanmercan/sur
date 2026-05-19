@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -16,10 +18,13 @@ import (
 	"github.com/suleymanmercan/sur/internal/store"
 	"github.com/suleymanmercan/sur/internal/tui"
 )
+
 var embeddedTaskFS embed.FS
+
 func SetTaskFS(fs embed.FS) {
-    embeddedTaskFS = fs
+	embeddedTaskFS = fs
 }
+
 var (
 	dryRun    bool
 	yesFlag   bool
@@ -42,12 +47,12 @@ var hardenCmd = &cobra.Command{
 		var err error
 
 		if taskDir != "" {
-		    tasks, err = engine.LoadTasks(taskDir)
+			tasks, err = engine.LoadTasks(taskDir)
 		} else {
-		    tasks, err = engine.LoadTasksFS(embeddedTaskFS, "tasks")
+			tasks, err = engine.LoadTasksFS(embeddedTaskFS, "tasks")
 		}
 		if err != nil {
-		    return err
+			return err
 		}
 		if len(tasks) == 0 {
 			return fmt.Errorf("no tasks found")
@@ -105,7 +110,11 @@ func selectTasks(r *engine.Runner, tasks []engine.Task) ([]engine.Task, string, 
 
 	// non-interactive paths
 	if yesFlag || allowAll || len(onlyIDs) > 0 || !term.IsTerminal(int(os.Stdin.Fd())) {
-		filtered := filterTasks(tasks, onlyIDs)
+		filtered, err := filterTasks(tasks, onlyIDs)
+		if err != nil {
+			_ = r.Store.FinishSession(sid, store.SessionFailed)
+			return nil, "", err
+		}
 		return filtered, sid, nil
 	}
 
@@ -121,9 +130,9 @@ func selectTasks(r *engine.Runner, tasks []engine.Task) ([]engine.Task, string, 
 	return selected, sid, nil
 }
 
-func filterTasks(all []engine.Task, ids []string) []engine.Task {
+func filterTasks(all []engine.Task, ids []string) ([]engine.Task, error) {
 	if len(ids) == 0 {
-		return all
+		return all, nil
 	}
 	want := map[string]bool{}
 	for _, id := range ids {
@@ -133,9 +142,18 @@ func filterTasks(all []engine.Task, ids []string) []engine.Task {
 	for _, t := range all {
 		if want[t.ID] {
 			out = append(out, t)
+			delete(want, t.ID)
 		}
 	}
-	return out
+	if len(want) > 0 {
+		var missing []string
+		for id := range want {
+			missing = append(missing, id)
+		}
+		sort.Strings(missing)
+		return nil, fmt.Errorf("unknown task id(s): %s", strings.Join(missing, ", "))
+	}
+	return out, nil
 }
 
 func printResults(sessionID string, results []engine.Result) {

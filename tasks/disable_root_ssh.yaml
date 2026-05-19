@@ -8,15 +8,16 @@ risk_level: low
 distros: [ubuntu, debian, rocky, alma, fedora]
 
 pre_check:
-  command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
+  command: "! grep -Eiq '^[[:space:]]*PermitRootLogin[[:space:]]+no\\b' /etc/ssh/sshd_config"
   expect_exit: 0
 
 exec:
-  - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
+  - command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+' /etc/ssh/sshd_config && sed -ri 's/^[#[:space:]]*PermitRootLogin[[:space:]]+.*/PermitRootLogin no/' /etc/ssh/sshd_config || printf '\\nPermitRootLogin no\\n' >> /etc/ssh/sshd_config"
+  - command: "sshd -t"
   - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
 
 post_check:
-  command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
+  command: "grep -Eiq '^[[:space:]]*PermitRootLogin[[:space:]]+no\\b' /etc/ssh/sshd_config"
   expect_exit: 0
 
 rollback:

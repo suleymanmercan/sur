@@ -72,36 +72,37 @@ func LoadTasks(dir string) ([]Task, error) {
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
 	return tasks, nil
 }
+
 // LoadTasksFS reads tasks from an embedded filesystem.
 func LoadTasksFS(fs embed.FS, dir string) ([]Task, error) {
-    entries, err := fs.ReadDir(dir)
-    if err != nil {
-        return nil, err
-    }
-    var tasks []Task
-    for _, e := range entries {
-        if e.IsDir() {
-            continue
-        }
-        name := e.Name()
-        if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
-            continue
-        }
-        b, err := fs.ReadFile(dir + "/" + name)
-        if err != nil {
-            return nil, err
-        }
-        var t Task
-        if err := yaml.Unmarshal(b, &t); err != nil {
-            return nil, err
-        }
-        if t.ID == "" {
-            return nil, fmt.Errorf("%s: task id is required", name)
-        }
-        tasks = append(tasks, t)
-    }
-    sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
-    return tasks, nil
+	entries, err := fs.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var tasks []Task
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
+			continue
+		}
+		b, err := fs.ReadFile(dir + "/" + name)
+		if err != nil {
+			return nil, err
+		}
+		var t Task
+		if err := yaml.Unmarshal(b, &t); err != nil {
+			return nil, err
+		}
+		if t.ID == "" {
+			return nil, fmt.Errorf("%s: task id is required", name)
+		}
+		tasks = append(tasks, t)
+	}
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
+	return tasks, nil
 }
 func loadTaskFile(path string) (Task, error) {
 	var t Task
@@ -195,29 +196,17 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t Task) Result {
 	start := time.Now()
 	execID := uuid.NewString()
 
-	// 1. backup files
-	var backupPath string
-	var backupBlob []byte
-	for _, f := range t.BackupFiles {
-		if data, err := os.ReadFile(f); err == nil {
-			backupBlob = data
-			backupPath = f
-			break
-		}
-	}
-
 	rec := store.TaskExecution{
 		ID: execID, SessionID: sessionID, TaskID: t.ID,
-		BackupData: backupBlob, BackupPath: backupPath,
 		RollbackPossible: t.RollbackPossible, ExecutedAt: time.Now(),
 		Status: store.TaskSuccess,
 	}
 
-	// 2. pre_check (informational; skip when already satisfied)
+	// 1. pre_check (informational; skip when already satisfied)
 	if t.PreCheck.Command != "" {
 		_, code := runShell(ctx, t.PreCheck.Command)
-		if code != t.PreCheck.ExpectExit && t.PreCheck.ExpectExit == 0 {
-			r.log("[%s] pre_check indicates already compliant, skipping", t.ID)
+		if code != t.PreCheck.ExpectExit {
+			r.log("[%s] pre_check did not match expected state, skipping", t.ID)
 			rec.Status = store.TaskSkipped
 			_ = r.Store.RecordTask(rec)
 			return Result{TaskID: t.ID, Status: store.TaskSkipped, Duration: time.Since(start)}
@@ -234,6 +223,19 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t Task) Result {
 		_ = r.Store.RecordTask(rec)
 		return Result{TaskID: t.ID, Status: store.TaskSkipped, Duration: time.Since(start)}
 	}
+
+	// 2. backup files
+	var backupPath string
+	var backupBlob []byte
+	for _, f := range t.BackupFiles {
+		if data, err := os.ReadFile(f); err == nil {
+			backupBlob = data
+			backupPath = f
+			break
+		}
+	}
+	rec.BackupData = backupBlob
+	rec.BackupPath = backupPath
 
 	// 3. exec
 	r.log("[%s] applying...", t.ID)
@@ -305,6 +307,11 @@ func (r *Runner) RollbackSession(ctx context.Context, sessionID string, taskDir 
 	if err != nil {
 		return nil, err
 	}
+	return r.RollbackSessionTasks(ctx, sessionID, tasks)
+}
+
+// RollbackSessionTasks replays rollback using already loaded task definitions.
+func (r *Runner) RollbackSessionTasks(ctx context.Context, sessionID string, tasks []Task) ([]Result, error) {
 	byID := map[string]Task{}
 	for _, t := range tasks {
 		byID[t.ID] = t
@@ -324,6 +331,10 @@ func (r *Runner) RollbackSession(ctx context.Context, sessionID string, taskDir 
 		}
 		if !e.RollbackPossible {
 			out = append(out, Result{TaskID: e.TaskID, Status: store.TaskSkipped, Err: fmt.Errorf("not rollback-able")})
+			continue
+		}
+		if e.Status == store.TaskSkipped || e.Status == store.TaskRolledBack {
+			out = append(out, Result{TaskID: e.TaskID, Status: store.TaskSkipped, Err: fmt.Errorf("task status is %s", e.Status)})
 			continue
 		}
 		if err := r.rollbackTask(ctx, t, e.BackupPath, e.BackupData); err != nil {

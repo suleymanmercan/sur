@@ -37,22 +37,40 @@ fi
 
 ASSET="sur-linux-${ARCH}"
 URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
+CHECKSUM_URL="${URL}.sha256"
 
 info "detected: linux/${ARCH}"
 info "downloading $ASSET..."
 
 # download
-TMP=$(mktemp)
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+TMP="${TMP_DIR}/${ASSET}"
+CHECKSUM="${TMP_DIR}/${ASSET}.sha256"
+
 if command -v curl >/dev/null 2>&1; then
   curl -fsSL "$URL" -o "$TMP"
+  curl -fsSL "$CHECKSUM_URL" -o "$CHECKSUM"
 elif command -v wget >/dev/null 2>&1; then
   wget -qO "$TMP" "$URL"
+  wget -qO "$CHECKSUM" "$CHECKSUM_URL"
 else
   fail "curl or wget required"
 fi
 
-chmod +x "$TMP"
-mv "$TMP" "${INSTALL_DIR}/${BINARY}"
+if ! command -v sha256sum >/dev/null 2>&1; then
+  fail "sha256sum required to verify download"
+fi
+
+info "verifying checksum..."
+(cd "$TMP_DIR" && sha256sum -c "${ASSET}.sha256") >/dev/null
+
+mkdir -p "$INSTALL_DIR"
+install -m 0755 "$TMP" "${INSTALL_DIR}/${BINARY}"
+
+if ! "${INSTALL_DIR}/${BINARY}" --version >/dev/null 2>&1; then
+  fail "installed binary did not run correctly"
+fi
 
 ok "sur installed to ${INSTALL_DIR}/${BINARY}"
 info "run: sur check"
