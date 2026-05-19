@@ -1,30 +1,31 @@
-# Proje Durumu
+# Proje Durumu ve Vizyonu
 
-`sur` şu an güçlü bir beta seviyesindedir.
+`sur`, modern bulut ortamlarında çalışan VPS ve sunucular için tasarlanmış, local-first (yerel odaklı), bağımsız çalışabilen güçlü bir Linux hardening ve kurulum asistanıdır. 
 
-Kendi VPS'lerinde kontrollü kullanım için uygundur. Public production release için hâlâ gerçek distro testleri, release pipeline doğrulaması ve daha iyi TUI result ekranı gerekir.
+Geliştiriciler ve DevOps ekipleri için karmaşık güvenlik süreçlerini hafifletmek, tekrarlanabilir sunucu şablonları oluşturmak ve güvenlik durumunu kolayca denetlemek amacıyla tasarlanmıştır.
 
-## Güçlü Taraflar
+## Temel Yetkinlikler
 
-- Tek binary kurulum.
-- Local-first çalışma.
-- TUI ile task seçimi.
-- OS ve pre-check filtreleme.
-- SQLite session/history kaydı.
-- Check, harden, install, rollback ve history komutları.
-- Gömülü (embedded) task'lar ile harici/yerel task'ların pürüzsüz birleşimi (Truly Hybrid Loading).
-- Dinamik dosya ve shell yönetimi için Lua script desteği.
+- **Tekil Binary Mimari:** Harici kütüphane veya dil çalışma ortamı gerektirmeden hızlıca kurulur ve çalıştırılır.
+- **Yerel Öncelikli (Local-First):** Merkezi bir sunucuya ihtiyaç duymadan, tüm işlemlerinizi doğrudan hedef host üzerinde yürütür.
+- **Etkileşimli TUI (Terminal User Interface):** Güvenlik adımlarını ve kurulacak bileşenleri kolayca seçebileceğiniz görsel arayüz sunar.
+- **İşletim Sistemi ve Pre-check Akıllı Filtreleme:** Sistem durumunu ve dağıtım türünü algılayarak yalnızca ilgili ve gerekli task'ları gösterir.
+- **SQLite Oturum ve Geçmiş Yönetimi:** Tüm oturumları, uygulanan task durumlarını ve rollback verilerini yerel bir SQLite veritabanında kaydeder.
+- **Çok Yönlü Komut Seti:** `check`, `harden`, `install`, `rollback` ve `history` komutları ile uçtan uca yönetim sağlar.
+- **Hibrit Task Yönetimi (Truly Hybrid Loading):** Gömülü (embedded) task'lar ile yerel/sistem dizinlerindeki (`/etc/sur/tasks`) özel kuralları pürüzsüzce birleştirir ve override desteği sunar.
+- **Lua Script Desteği:** Statik YAML dosyalarının yetersiz kaldığı karmaşık akışlar için güçlü ve dinamik Lua betikleri yazma imkanı tanır.
 
-## Henüz Eksik Olanlar
+## Geliştirme Yol Haritası ve Yakın Plan Hedefler
 
-- Debian/Ubuntu/RHEL/Fedora/openSUSE üzerinde gerçek VM smoke test matrisi.
-- GitHub release pipeline'ın gerçek release üstünde doğrulanması.
-- `check` finding -> auto-fix task mapping.
-- Apply sırasında progress/result TUI ekranı.
-- Rollback sınırlarının UI içinde daha görünür olması.
+Projenin kararlılığını ve yetenek setini artırmak adına aşağıdaki başlıklar aktif bir şekilde geliştirilmektedir:
 
-## Doğru Konumlandırma
+- **Çoklu Dağıtım Test Matrisi (VM Smoke Tests):** Debian, Ubuntu, RHEL, Fedora ve openSUSE üzerinde otomatik sanal makine test altyapısının kurulması.
+- **Gelişmiş TUI Oturum Arayüzü:** Değişikliklerin uygulanma anında detaylı ilerleme (progress) ve sonuç raporlama ekranının zenginleştirilmesi.
+- **Check -> Auto-Fix Eşleşmesi:** `sur check` bulgularının, sistemdeki uygun düzeltme (hardening) task'ları ile doğrudan eşleştirilerek kullanıcılara önerilmesi.
+- **GitHub Release Entegrasyonu:** Release pipeline süreçlerinin otomatik testler eşliğinde uçtan uca doğrulanması.
 
-`sur`, developer-friendly VPS hardening assistant olarak konumlanmalıdır.
+## Tasarım Felsefesi ve Konumlandırma
 
-Enterprise compliance platform, SIEM veya fleet-management sistemi gibi pazarlanmamalıdır.
+`sur`, bulut üzerinde VPS ve sunucu ayağa kaldıran **geliştiriciler için pratik, hızlı ve güvenilir bir güvenlik asistanı** olarak konumlandırılmıştır. 
+
+Büyük ölçekli kurumsal SIEM, fleet-management veya merkezi uyumluluk platformlarının getirdiği hantallık ve bağımlılıklardan kaçınarak; hafif, geliştirici dostu ve hızlı bir yerel iş akışı sunmaya odaklanır.

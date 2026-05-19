@@ -28,7 +28,6 @@ features:
   - title: "Truly Hybrid Yükleme"
     details: "Embedded task'ları local/sistem dizinlerindeki (/etc/sur/tasks) task'larla otomatik birleştirir ve override desteği sunar."
 ---
+## Geliştirici Odaklı & Kolay Güvenlik
 
-## Beta Durumu
-
-`sur`, kontrollü VPS kullanımı için güçlü bir beta seviyesindedir. Public production release için gerçek distro smoke testleri ve daha iyi apply/result ekranı hâlâ yapılmalıdır.
+`sur`, sunucularınızın güvenlik seviyesini artırmak için karmaşık ve ağır araçlara ihtiyaç duymadan, yerel ve hızlı çözümler sunar. Geliştirici dostu iş akışları ile dağıtımlar genelinde tutarlı ve güvenli bir VPS hazırlık deneyimi sağlamayı amaçlar.

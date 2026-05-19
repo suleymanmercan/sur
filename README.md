@@ -4,7 +4,7 @@
 
 It audits a server, shows risky defaults, lets you choose supported fixes in a TUI, applies selected tasks locally, records the session in SQLite, and supports rollback where a task can safely be reversed.
 
-The project is currently **beta-quality**. It is useful for controlled VPS hardening, but it is not yet a formal CIS/STIG compliance tool or an enterprise fleet-management platform.
+The project is a developer-centric, local-first Linux/VPS hardening and system initialization assistant.
 
 documentation live on: https://suleymanmercan.github.io/sur/
 
@@ -30,11 +30,11 @@ documentation live on: https://suleymanmercan.github.io/sur/
 - Stores sessions, task status, rollback data, and history in SQLite.
 - Installs as a single static Go binary.
 
-## What It Is Not
+## Design Philosophy & Focus
 
-`sur` is not Ansible, OpenSCAP, Wazuh, Lynis, Nessus, or a CIS benchmark implementation.
+`sur` is designed to be lightweight, zero-dependency, and extremely fast.
 
-It does not manage remote fleets, run a web dashboard, or guarantee full compliance. The goal is a practical local workflow for developers and small teams preparing Linux servers.
+Unlike agent-heavy or complex fleet-management platforms, `sur` focuses on a developer-friendly, local-first workflow for individuals and teams looking to quickly configure and secure Linux servers.
 
 ## Install
 
@@ -273,7 +273,7 @@ The code detects these Linux families:
 | Fedora       | Fedora | `dnf`           |
 | openSUSE     | SUSE   | `zypper`        |
 
-Current production-readiness note: Debian/Ubuntu paths are the primary target. RHEL/Fedora/openSUSE support exists in detection and selected task commands, but every distro path still needs real VM smoke testing before a public production claim.
+Note on Distro Support: Debian and Ubuntu paths are the primary development targets. Support for RHEL, Fedora, and openSUSE exists in system detection and selected tasks, with ongoing testing to expand compatibility across all distributions.
 
 ## Development
 
@@ -323,13 +323,11 @@ npm install
 npm run docs:dev
 ```
 
-## Project Status
+## Project Roadmap & Status
 
-`sur` is a strong beta. The next work should focus on:
+`sur` is actively developed and feature-complete for core use cases. The primary roadmap items include:
 
-- release pipeline
-- real OS smoke tests
-- check-to-task mapping
-- better TUI apply/result screen
-- safer Go implementations for critical SSH/firewall tasks
-- clearer rollback/history reporting
+- Automating the cross-distro VM test matrix.
+- Enhancing the TUI results screen.
+- Tighter mapping from `sur check` findings directly to hardening tasks.
+- Further hardening of critical configuration tasks.
