@@ -40,6 +40,18 @@ Interactive Linux/VPS hardening CLI: audit a host, select fixes in a TUI, apply 
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash
 ```
 
+Uninstall the binary while keeping local config and state:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall
+```
+
+Remove the binary, legacy config, and local state:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall --purge
+```
+
 ### Linux AMD64
 
 ```bash

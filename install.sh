@@ -4,6 +4,8 @@ set -e
 REPO="suleymanmercan/sur"
 BINARY="sur"
 INSTALL_DIR="/usr/local/bin"
+LEGACY_TASK_DIR="/etc/sur"
+STATE_DIR="/var/lib/sur"
 
 # colors
 RED='\033[0;31m'
@@ -15,9 +17,50 @@ info()  { printf "${DIM}→${RESET} %s\n" "$1"; }
 ok()    { printf "${GREEN}✓${RESET} %s\n" "$1"; }
 fail()  { printf "${RED}✗${RESET} %s\n" "$1"; exit 1; }
 
+usage() {
+  cat <<EOF
+sur installer
+
+Usage:
+  install.sh
+  install.sh --uninstall
+  install.sh --uninstall --purge
+
+Options:
+  --uninstall  remove the installed sur binary
+  --purge      with --uninstall, also remove ${LEGACY_TASK_DIR} and ${STATE_DIR}
+EOF
+}
+
+UNINSTALL=0
+PURGE=0
+for arg in "$@"; do
+  case "$arg" in
+    --uninstall) UNINSTALL=1 ;;
+    --purge) PURGE=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown option: $arg" ;;
+  esac
+done
+
 # root check
 if [ "$(id -u)" -ne 0 ]; then
   fail "please run with sudo: curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | sudo bash"
+fi
+
+if [ "$UNINSTALL" -eq 1 ]; then
+  info "uninstalling sur..."
+  rm -f "${INSTALL_DIR}/${BINARY}"
+  if [ "$PURGE" -eq 1 ]; then
+    rm -rf "${LEGACY_TASK_DIR}"
+    rm -rf "${STATE_DIR}"
+    ok "sur removed, including ${LEGACY_TASK_DIR} and ${STATE_DIR}"
+  else
+    ok "sur binary removed"
+    info "kept ${LEGACY_TASK_DIR} and ${STATE_DIR}"
+    info "run with --uninstall --purge to remove them too"
+  fi
+  exit 0
 fi
 
 # detect arch

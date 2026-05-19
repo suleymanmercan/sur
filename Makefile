@@ -1,7 +1,10 @@
-.PHONY: build test lint run clean install
+.PHONY: build test lint run clean install uninstall purge
 
 BINARY := sur
 GO     := go
+PREFIX ?= /usr/local
+STATE_DIR ?= /var/lib/sur
+LEGACY_TASK_DIR ?= /etc/sur
 
 build:
 	$(GO) build -trimpath -ldflags "-s -w" -o $(BINARY) .
@@ -19,6 +22,12 @@ clean:
 	rm -f $(BINARY)
 
 install: build
-	install -m 0755 $(BINARY) /usr/local/bin/$(BINARY)
-	mkdir -p /etc/sur/tasks
-	cp -r tasks/*.yaml /etc/sur/tasks/
+	mkdir -p $(PREFIX)/bin
+	install -m 0755 $(BINARY) $(PREFIX)/bin/$(BINARY)
+
+uninstall:
+	rm -f $(PREFIX)/bin/$(BINARY)
+
+purge: uninstall
+	rm -rf $(LEGACY_TASK_DIR)
+	rm -rf $(STATE_DIR)
