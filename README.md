@@ -1,105 +1,81 @@
 # sur
 
-Interactive Linux/VPS hardening CLI: audit a host, select fixes in a TUI, apply them with backups, and roll back failed or unwanted changes.
+`sur` is a local-first Linux/VPS hardening and setup assistant.
 
-`sur` is a single-binary Go tool for developers provisioning fresh Linux servers and small DevOps teams that want controlled hardening without opaque automation.
+It audits a server, shows risky defaults, lets you choose supported fixes in a TUI, applies selected tasks locally, records the session in SQLite, and supports rollback where a task can safely be reversed.
 
-> Harden the server, show exactly what changed, require approval, and allow rollback if something breaks.
+The project is currently **beta-quality**. It is useful for controlled VPS hardening, but it is not yet a formal CIS/STIG compliance tool or an enterprise fleet-management platform.
 
-## Features
+documentation live on: https://suleymanmercan.github.io/sur/
 
-- `sur check`
-  - Runs the built-in security audit.
-  - Checks SSH configuration, firewall status, fail2ban, unattended upgrades, listening ports, and sudoers configuration.
-  - Can run a deeper Lynis scan with `--deep`.
-- `sur harden`
-  - Opens an interactive Bubble Tea TUI.
-  - Lets you select hardening tasks with checkboxes.
-  - Runs each task through backup, execution, post-check validation, and rollback-on-failure steps.
-- `sur install`
-  - Opens an interactive task picker for fresh-server setup.
-  - Lets you choose optional install tasks such as swap, Docker, Caddy, and common CLI packages.
-  - Uses the same task engine and SQLite session tracking as `sur harden`.
-- SQLite state tracking
-  - Uses `modernc.org/sqlite`, so the binary stays CGO-free.
-  - Stores sessions, task executions, rollback metadata, and audit history.
-  - Defaults to `/var/lib/sur/sur.db`, or `$SUR_DB` when set.
-- `sur rollback <session-id>`
-  - Reverts a previous hardening session in reverse task order.
-- `sur history`
-  - Lists previous hardening sessions.
-- `--dry-run`
-  - Previews changes without modifying the system.
-- `--json`
-  - Emits machine-readable output for automation.
-- Static Go binary
-  - No CGO requirement.
-  - Suitable for minimal VPS environments.
+## What It Does
 
-## Installation
+- Runs local security checks with `sur check`.
+- Finds common VPS risks:
+  - SSH root login
+  - SSH password authentication
+  - default SSH port
+  - inactive or missing firewall
+  - missing or inactive fail2ban
+  - missing automatic security updates
+  - listening sockets
+  - sudoers `NOPASSWD` entries
+- Opens an interactive hardening picker with `sur harden`.
+- Opens an interactive server setup picker with `sur install`.
+- Filters tasks before showing them:
+  - unsupported OS tasks are hidden
+  - already-satisfied tasks are hidden
+  - only applicable tasks are shown
+- Runs selected task commands directly on the host.
+- Stores sessions, task status, rollback data, and history in SQLite.
+- Installs as a single static Go binary.
 
-### Install Script
+## What It Is Not
+
+`sur` is not Ansible, OpenSCAP, Wazuh, Lynis, Nessus, or a CIS benchmark implementation.
+
+It does not manage remote fleets, run a web dashboard, or guarantee full compliance. The goal is a practical local workflow for developers and small teams preparing Linux servers.
+
+## Install
+
+Recommended install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash
 ```
 
-Update an existing install to the latest release:
+Update an existing install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --update
 ```
 
-The update flow downloads the latest release asset for the detected Linux architecture, verifies its `.sha256` checksum, and replaces `/usr/local/bin/sur`. It does not remove `/var/lib/sur` state or legacy `/etc/sur` files.
+The update flow downloads the latest release asset for the detected Linux architecture, verifies its `.sha256` checksum, and replaces `/usr/local/bin/sur`. It does not delete `/var/lib/sur` state.
 
-Uninstall the binary while keeping local config and state:
+Uninstall only the binary:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall
 ```
 
-Remove the binary, legacy config, and local state:
+Remove the binary and local state:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall --purge
 ```
 
-### Linux AMD64
-
-```bash
-curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-amd64 -o /tmp/sur
-sudo mv /tmp/sur /usr/local/bin/sur
-sudo chmod +x /usr/local/bin/sur
-```
-
-### Linux ARM64
-
-Use this build for ARM64 servers, Raspberry Pi, Oracle Ampere, and AWS Graviton:
-
-```bash
-curl -fsSL https://github.com/suleymanmercan/sur/releases/latest/download/sur-linux-arm64 -o /tmp/sur
-sudo mv /tmp/sur /usr/local/bin/sur
-sudo chmod +x /usr/local/bin/sur
-```
-
-### Build From Source
+Build from source:
 
 ```bash
 git clone https://github.com/suleymanmercan/sur.git
 cd sur
-go build -o sur .
-sudo mv sur /usr/local/bin/sur
+go build -trimpath -ldflags "-s -w" -o sur .
+sudo install -m 0755 sur /usr/local/bin/sur
 ```
-
-### Requirements
-
-- Go 1.22 or newer when building from source
-- Linux system
-- `sudo` or root access for hardening operations
 
 ## Quick Start
 
-Run a security audit:
+Run a basic audit:
 
 ```bash
 sur check
@@ -111,46 +87,34 @@ Run a deeper audit with Lynis:
 sur check --deep
 ```
 
-Install Lynis automatically when it is missing:
+Install Lynis automatically when missing:
 
 ```bash
 sudo sur check --deep --install-lynis
 ```
 
-Preview hardening changes:
+Preview hardening actions:
 
 ```bash
 sudo sur harden --dry-run
 ```
 
-Open interactive hardening mode:
+Open the interactive hardening TUI:
 
 ```bash
 sudo sur harden
 ```
 
-Open interactive install mode:
+Run selected hardening tasks only:
+
+```bash
+sudo sur harden --only enable_ufw,install_fail2ban
+```
+
+Open the interactive install/setup TUI:
 
 ```bash
 sudo sur install
-```
-
-Preview install tasks:
-
-```bash
-sudo sur install --dry-run
-```
-
-Run all hardening tasks without the TUI:
-
-```bash
-sudo sur harden --yes
-```
-
-Run selected tasks only:
-
-```bash
-sudo sur harden --only disable_root_ssh,ssh_password_auth_off
 ```
 
 Run selected install tasks only:
@@ -159,13 +123,7 @@ Run selected install tasks only:
 sudo sur install --only configure_swap,install_docker,install_caddy
 ```
 
-Use a custom task directory or state database:
-
-```bash
-sudo sur harden --tasks ./tasks --state ./sur.db
-```
-
-View history:
+View previous sessions:
 
 ```bash
 sur history
@@ -177,143 +135,155 @@ Roll back a previous session:
 sudo sur rollback <session-id>
 ```
 
-Emit JSON:
+## Command Reference
+
+| Command                            | Purpose                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `sur check`                        | Audit the host and print a security report.                            |
+| `sur check --deep`                 | Include Lynis findings when Lynis is available.                        |
+| `sur check --deep --install-lynis` | Install Lynis first if it is missing.                                  |
+| `sur harden`                       | Select and apply hardening tasks interactively.                        |
+| `sur harden --dry-run`             | Show selected hardening actions without changing the host.             |
+| `sur harden --yes`                 | Apply all applicable hardening tasks without the TUI.                  |
+| `sur harden --all`                 | Apply all applicable hardening tasks without prompting.                |
+| `sur harden --only <ids>`          | Apply only comma-separated hardening task IDs.                         |
+| `sur harden --resume`              | Resume the latest unfinished session.                                  |
+| `sur harden --tasks <dir>`         | Load hardening tasks from a custom directory.                          |
+| `sur harden --state <path>`        | Use a custom SQLite state database.                                    |
+| `sur install`                      | Select and apply server setup tasks interactively.                     |
+| `sur install --dry-run`            | Show selected install actions without changing the host.               |
+| `sur install --yes`                | Apply all applicable install tasks without the TUI.                    |
+| `sur install --all`                | Apply all applicable install tasks without prompting.                  |
+| `sur install --only <ids>`         | Apply only comma-separated install task IDs.                           |
+| `sur install --tasks <dir>`        | Load install tasks from a custom directory.                            |
+| `sur install --state <path>`       | Use a custom SQLite state database.                                    |
+| `sur rollback <session-id>`        | Roll back a session in reverse task order where rollback is supported. |
+| `sur history`                      | List previous sessions.                                                |
+| `--json`                           | Emit machine-readable JSON for supported commands.                     |
+
+## Built-In Hardening Tasks
+
+| Task ID                 | What it does                                                        | Risk   | Rollback |
+| ----------------------- | ------------------------------------------------------------------- | ------ | -------- |
+| `disable_root_ssh`      | Sets `PermitRootLogin no` and restarts SSH after validation.        | low    | yes      |
+| `ssh_password_auth_off` | Sets `PasswordAuthentication no` and restarts SSH after validation. | medium | yes      |
+| `enable_ufw`            | Installs UFW when needed, allows SSH, and enables the firewall.     | high   | no       |
+| `install_fail2ban`      | Installs fail2ban and enables the service.                          | low    | partial  |
+| `unattended_upgrades`   | Enables automatic security updates on Debian/Ubuntu.                | low    | yes      |
+
+## Built-In Install Tasks
+
+| Task ID          | What it does                                                                          | Risk   | Rollback |
+| ---------------- | ------------------------------------------------------------------------------------- | ------ | -------- |
+| `server_basics`  | Installs common CLI packages such as curl, git, unzip, jq, htop, and CA certificates. | low    | no       |
+| `configure_swap` | Creates `/swapfile`, enables it, and persists it in `/etc/fstab`.                     | medium | yes      |
+| `install_docker` | Installs Docker Engine and the Compose plugin from Docker's package repository.       | medium | no       |
+| `install_caddy`  | Installs and enables the Caddy web server.                                            | low    | no       |
+
+Swap size defaults to `2G`. Override it with:
 
 ```bash
-sur check --json
-sudo sur harden --dry-run --json
+sudo SUR_SWAP_SIZE=4G sur install --only configure_swap
 ```
 
-## Commands
+or:
 
-| Command | Purpose |
-| --- | --- |
-| `sur check` | Audit the host and print a security report. |
-| `sur check --deep` | Include Lynis findings when Lynis is available. |
-| `sur harden` | Select and apply hardening tasks interactively. |
-| `sur harden --dry-run` | Show the planned hardening run without changing the host. |
-| `sur harden --yes` | Apply every task without opening the TUI. |
-| `sur harden --only <ids>` | Apply only comma-separated task IDs. |
-| `sur harden --resume` | Resume the latest unfinished session. |
-| `sur install` | Select and apply server install tasks interactively. |
-| `sur install --dry-run` | Show the planned install run without changing the host. |
-| `sur install --yes` | Apply every install task without opening the TUI. |
-| `sur install --only <ids>` | Apply only comma-separated install task IDs. |
-| `sur rollback <session-id>` | Roll back a session in reverse execution order. |
-| `sur history` | List previous sessions. |
+```bash
+sudo SUR_SWAP_MB=4096 sur install --only configure_swap
+```
 
 ## Task System
 
-Hardening operations are defined as YAML task files under `tasks/`. Fresh-server install operations are defined under `install_tasks/`.
+Hardening tasks live under `tasks/`.
 
-Both task sets are embedded into the Go binary and executed by the same internal engine. `sur` does not call Ansible. For each selected YAML task, it runs the configured shell commands directly on the local host with `sh -c`.
+Install/setup tasks live under `install_tasks/`.
 
-Example:
-
-```yaml
-id: disable_root_ssh
-name: "Disable SSH root login"
-description: "Sets PermitRootLogin no in /etc/ssh/sshd_config and restarts sshd."
-rollback_possible: true
-backup_files:
-  - /etc/ssh/sshd_config
-risk_level: low
-distros: [ubuntu, debian, rocky, alma, fedora]
-
-pre_check:
-  command: "grep -Eiq '^[#[:space:]]*PermitRootLogin[[:space:]]+yes' /etc/ssh/sshd_config"
-  expect_exit: 0
-
-exec:
-  - command: "sed -ri 's/^#?\\s*PermitRootLogin\\s+.*/PermitRootLogin no/' /etc/ssh/sshd_config"
-  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
-
-post_check:
-  command: "grep -Eq '^PermitRootLogin[[:space:]]+no' /etc/ssh/sshd_config"
-  expect_exit: 0
-
-rollback:
-  - command: "cp {backup_path} /etc/ssh/sshd_config"
-  - command: "systemctl restart ssh 2>/dev/null || systemctl restart sshd"
-```
+Both directories are embedded into the Go binary with `go:embed`. `sur` does not call Ansible. It loads YAML task definitions and runs selected task steps directly on the local host with `sh -c`.
 
 Each task follows this lifecycle:
 
 ```text
-pre-check
-backup
-execute
-post-check
-success or rollback
+load task
+filter by OS
+run pre_check
+hide task if already satisfied
+backup configured files
+execute steps
+run post_check
+record result
+rollback on failure when supported
 ```
 
-## Built-In Tasks
+Important task fields:
 
-### Hardening
+| Field               | Meaning                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `id`                | Stable task identifier used by `--only` and session history.         |
+| `name`              | Human-readable TUI label.                                            |
+| `description`       | Short explanation shown in the picker.                               |
+| `distros`           | OS IDs/families where the task is applicable.                        |
+| `pre_check`         | Command that returns the expected exit code when the task is needed. |
+| `exec`              | Commands to apply the task.                                          |
+| `post_check`        | Command that verifies the task succeeded.                            |
+| `backup_files`      | Files saved before mutation.                                         |
+| `rollback`          | Commands used to reverse the task when possible.                     |
+| `rollback_possible` | Whether rollback should be offered/trusted for that task.            |
 
-| Task ID | Description | Risk |
-| --- | --- | --- |
-| `disable_root_ssh` | Sets `PermitRootLogin no` in SSH config. | low |
-| `ssh_password_auth_off` | Sets `PasswordAuthentication no` for key-based SSH auth. | medium |
-| `enable_ufw` | Allows SSH and enables UFW. | high |
-| `install_fail2ban` | Installs and enables fail2ban. | low |
-| `unattended_upgrades` | Enables automatic security updates on Debian/Ubuntu. | low |
+## State and Rollback
 
-### Install
-
-| Task ID | Description | Risk |
-| --- | --- | --- |
-| `server_basics` | Installs common CLI packages such as curl, git, unzip, jq, and htop. | low |
-| `configure_swap` | Creates and persists a `/swapfile`; defaults to 2G and can be changed with `SUR_SWAP_SIZE` or `SUR_SWAP_MB`. | medium |
-| `install_docker` | Installs Docker Engine and the Compose plugin from Docker's package repository. | medium |
-| `install_caddy` | Installs and enables the Caddy web server. | low |
-
-## Supported Distributions
-
-| Distribution | Family | Package Manager |
-| --- | --- | --- |
-| Ubuntu | Debian | `apt` |
-| Debian | Debian | `apt` |
-| Rocky Linux | RHEL | `dnf` |
-| AlmaLinux | RHEL | `dnf` |
-| CentOS | RHEL | `dnf`/`yum` |
-| Fedora | Fedora | `dnf` |
-| openSUSE | SUSE | `zypper` |
-
-## Architecture
+By default, `sur` stores state in:
 
 ```text
-sur/
-├── cmd/                # Cobra CLI commands
-│   ├── root
-│   ├── check
-│   ├── harden
-│   ├── install
-│   ├── rollback
-│   └── history
-├── internal/
-│   ├── osdetect/       # /etc/os-release parser
-│   ├── checker/        # Security checks
-│   ├── lynis/          # Lynis integration and parsing
-│   ├── engine/         # Task lifecycle engine
-│   ├── store/          # SQLite persistence
-│   ├── tui/            # Bubble Tea interface
-│   └── common/         # Shared models/types
-├── tasks/              # YAML hardening tasks
-├── install_tasks/      # YAML install/setup tasks
-├── docs/               # Static landing/docs page
-└── Makefile
+/var/lib/sur/sur.db
 ```
+
+Override it with:
+
+```bash
+sudo sur harden --state ./sur.db
+```
+
+or:
+
+```bash
+SUR_DB=./sur.db sudo -E sur harden
+```
+
+Rollback is task-dependent. Config-file tasks can usually be rolled back because `sur` stores backup data. Package installs and firewall changes may require manual recovery and are marked accordingly.
+
+## Safety Notes
+
+- Always run `sur check` before applying changes.
+- Always run `sur harden --dry-run` on important servers.
+- Keep an active SSH session open before changing SSH or firewall settings.
+- Review high-risk tasks such as `enable_ufw` before applying them remotely.
+- Do not treat the score as a compliance certificate.
+- Manual-review findings, such as many listening ports, should not be blindly auto-fixed.
+
+## Supported Systems
+
+The code detects these Linux families:
+
+| Distribution | Family | Package manager |
+| ------------ | ------ | --------------- |
+| Debian       | Debian | `apt`           |
+| Ubuntu       | Debian | `apt`           |
+| Rocky Linux  | RHEL   | `dnf`           |
+| AlmaLinux    | RHEL   | `dnf`           |
+| Fedora       | Fedora | `dnf`           |
+| openSUSE     | SUSE   | `zypper`        |
+
+Current production-readiness note: Debian/Ubuntu paths are the primary target. RHEL/Fedora/openSUSE support exists in detection and selected task commands, but every distro path still needs real VM smoke testing before a public production claim.
 
 ## Development
 
-Build the binary:
+Build:
 
 ```bash
 make build
 ```
 
-Run tests:
+Test:
 
 ```bash
 make test
@@ -325,32 +295,41 @@ Run `go vet`:
 make lint
 ```
 
-Install locally:
+Install locally from source:
 
 ```bash
 sudo make install
 ```
 
-Clean build output:
+Uninstall local binary:
 
 ```bash
-make clean
+sudo make uninstall
 ```
 
-## Safety Notes
+Remove local binary and state:
 
-- Run `sur harden --dry-run` before applying changes on an important host.
-- Keep a working SSH session open when changing SSH settings remotely.
-- Review high-risk tasks such as firewall activation before confirming them.
-- Rollback is task-dependent; tasks with `rollback_possible: false` may require manual recovery.
+```bash
+sudo make purge
+```
 
-## Non-MVP Scope
+## Documentation
 
-Currently out of scope:
+The lightweight documentation site lives under `docs/`.
 
-- SSH remote fleet management
-- Multi-host orchestration
-- Web dashboard
-- Agent-based remediation
-- Kubernetes hardening
-- Full CIS benchmark automation
+```bash
+cd docs
+npm install
+npm run docs:dev
+```
+
+## Project Status
+
+`sur` is a strong beta. The next work should focus on:
+
+- release pipeline
+- real OS smoke tests
+- check-to-task mapping
+- better TUI apply/result screen
+- safer Go implementations for critical SSH/firewall tasks
+- clearer rollback/history reporting
