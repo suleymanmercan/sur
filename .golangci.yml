@@ -1,38 +1,37 @@
 run:
-  timeout: 5m
-  go: "1.24"
+    timeout: 5m
 
 linters:
-  disable-all: true
-  enable:
-    - errcheck       # unhandled errors
-    - gosimple       # simplification suggestions
-    - govet          # go vet checks
-    - ineffassign    # ineffectual assignments
-    - staticcheck    # staticcheck suite
-    - unused         # unused code
-    - gofmt          # formatting
-    - misspell       # typos in comments/strings
-    - bodyclose      # HTTP response body close
-    - nilerr         # returning nil when err != nil
+    disable-all: true
+    enable:
+        - errcheck # unhandled errors
+        - gosimple # simplification suggestions
+        - govet # go vet checks
+        - ineffassign # ineffectual assignments
+        - staticcheck # staticcheck suite
+        - unused # unused code
+        - gofmt # formatting
+        - misspell # typos in comments/strings
+        - bodyclose # HTTP response body close
+        - nilerr # returning nil when err != nil
 
 linters-settings:
-  errcheck:
-    check-blank: false
-  govet:
-    enable-all: true
-    disable:
-      - shadow  # too noisy for this codebase
-      - fieldalignment # struct padding checks are too noisy for business logic
-  misspell:
-    locale: US
+    errcheck:
+        check-blank: false
+    govet:
+        enable-all: true
+        disable:
+            - shadow # too noisy for this codebase
+            - fieldalignment # struct padding checks are too noisy for business logic
+    misspell:
+        locale: US
 
 issues:
-  max-issues-per-linter: 50
-  max-same-issues: 10
-  exclude-rules:
-    # test files get more leniency
-    - path: "_test\\.go"
-      linters:
-        - errcheck
-        - bodyclose
+    max-issues-per-linter: 50
+    max-same-issues: 10
+    exclude-rules:
+        # test files get more leniency
+        - path: "_test\\.go"
+          linters:
+              - errcheck
+              - bodyclose
