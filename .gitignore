@@ -11,3 +11,8 @@ credentials.json
 composed.txt
 ROADMAP.md
 MARKET_ANALYSIS.md
+
+# Vitepress & Docs
+docs/node_modules
+docs/.vitepress/dist
+docs/.vitepress/cache
