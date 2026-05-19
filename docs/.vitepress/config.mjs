@@ -1,22 +1,20 @@
 import { defineConfig } from 'vitepress'
 
-// https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "sur",
-  description: "Linux hardening, with consent",
-  
-  // Varsayılan olarak hep koyu tema olmasını istiyorsak:
+  title: 'sur',
+  description: 'Local-first Linux/VPS hardening and setup assistant',
+  lang: 'tr-TR',
+  base: '/sur/',
   appearance: 'dark',
-  
-  // Eğer /docs altındaysa, projenin root yolunu değiştirmene genelde gerek yok.
-  // Sadece GitHub Pages'da repo adınla yayınlanacaksa base eklemek gerekebilir.
-  // base: '/sur/', 
-  
+
   themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
+    siteTitle: 'sur',
+
     nav: [
       { text: 'Ana Sayfa', link: '/' },
-      { text: 'Kurulum', link: '/kurulum' }
+      { text: 'Kurulum', link: '/kurulum' },
+      { text: 'Komutlar', link: '/komutlar' },
+      { text: 'Güvenlik', link: '/guvenlik' }
     ],
 
     sidebar: [
@@ -24,6 +22,10 @@ export default defineConfig({
         text: 'Dokümantasyon',
         items: [
           { text: 'Kurulum', link: '/kurulum' },
+          { text: 'Komutlar', link: '/komutlar' },
+          { text: 'Task Sistemi', link: '/task-sistemi' },
+          { text: 'Güvenlik Notları', link: '/guvenlik' },
+          { text: 'Proje Durumu', link: '/durum' }
         ]
       }
     ],
