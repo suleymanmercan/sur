@@ -373,11 +373,7 @@
                 <h2><span class="num">00</span><span data-i18n="install_title"></span></h2>
                 <p class="lede" style="font-size: 15px" data-i18n="install_desc"></p>
                 <div class="install-box">
-                    <code id="install-cmd"
-                        >curl -fsSL
-                        https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo
-                        bash</code
-                    >
+                    <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash</code>
                     <button
                         class="copy-btn"
                         type="button"
@@ -395,11 +391,7 @@
                     data-i18n="uninstall_desc"
                 ></p>
                 <div class="install-box">
-                    <code id="uninstall-cmd"
-                        >curl -fsSL
-                        https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo
-                        bash -s -- --uninstall</code
-                    >
+                    <code id="uninstall-cmd">curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall</code>
                     <button
                         class="copy-btn"
                         type="button"
@@ -412,11 +404,7 @@
                     data-i18n="purge_desc"
                 ></p>
                 <div class="install-box">
-                    <code id="purge-cmd"
-                        >curl -fsSL
-                        https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo
-                        bash -s -- --uninstall --purge</code
-                    >
+                    <code id="purge-cmd">curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --uninstall --purge</code>
                     <button
                         class="copy-btn"
                         type="button"
@@ -688,7 +676,7 @@ STATUS   ID                  TITLE
             }
 
             function copyCommand(id, btn) {
-                const cmd = document.getElementById(id).textContent.trim();
+                const cmd = document.getElementById(id).textContent.trim().replace(/\s+/g, " ");
                 const lang = document.documentElement.dataset.lang || "en";
 
                 navigator.clipboard.writeText(cmd).then(() => {

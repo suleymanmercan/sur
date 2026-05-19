@@ -17,6 +17,24 @@ info()  { printf "${DIM}→${RESET} %s\n" "$1"; }
 ok()    { printf "${GREEN}✓${RESET} %s\n" "$1"; }
 fail()  { printf "${RED}✗${RESET} %s\n" "$1"; exit 1; }
 
+download() {
+  url="$1"
+  out="$2"
+  label="$3"
+
+  if command -v curl >/dev/null 2>&1; then
+    if ! curl -fsSL "$url" -o "$out"; then
+      fail "could not download ${label}: ${url}"
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    if ! wget -qO "$out" "$url"; then
+      fail "could not download ${label}: ${url}"
+    fi
+  else
+    fail "curl or wget required"
+  fi
+}
+
 usage() {
   cat <<EOF
 sur installer
@@ -91,15 +109,8 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 TMP="${TMP_DIR}/${ASSET}"
 CHECKSUM="${TMP_DIR}/${ASSET}.sha256"
 
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$URL" -o "$TMP"
-  curl -fsSL "$CHECKSUM_URL" -o "$CHECKSUM"
-elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$TMP" "$URL"
-  wget -qO "$CHECKSUM" "$CHECKSUM_URL"
-else
-  fail "curl or wget required"
-fi
+download "$URL" "$TMP" "$ASSET"
+download "$CHECKSUM_URL" "$CHECKSUM" "${ASSET}.sha256"
 
 if ! command -v sha256sum >/dev/null 2>&1; then
   fail "sha256sum required to verify download"
