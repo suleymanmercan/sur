@@ -1,37 +1,37 @@
+version: "2"
+
 run:
     timeout: 5m
 
 linters:
-    disable-all: true
+    default: none # eski disable-all'ın karşılığı
     enable:
-        - errcheck # unhandled errors
-        - gosimple # simplification suggestions
-        - govet # go vet checks
-        - ineffassign # ineffectual assignments
-        - staticcheck # staticcheck suite
-        - unused # unused code
-        - gofmt # formatting
-        - misspell # typos in comments/strings
-        - bodyclose # HTTP response body close
-        - nilerr # returning nil when err != nil
+        - errcheck
+        - gosimple
+        - govet
+        - ineffassign
+        - staticcheck
+        - unused
+        - misspell
+        - bodyclose
+        - nilerr
+    settings:
+        errcheck:
+            check-blank: false
+        govet:
+            enable-all: true
+            disable:
+                - shadow
+                - fieldalignment
+        misspell:
+            locale: US
+    exclusions:
+        rules:
+            - path: "_test\\.go"
+              linters:
+                  - errcheck
+                  - bodyclose
 
-linters-settings:
-    errcheck:
-        check-blank: false
-    govet:
-        enable-all: true
-        disable:
-            - shadow # too noisy for this codebase
-            - fieldalignment # struct padding checks are too noisy for business logic
-    misspell:
-        locale: US
-
-issues:
-    max-issues-per-linter: 50
-    max-same-issues: 10
-    exclude-rules:
-        # test files get more leniency
-        - path: "_test\\.go"
-          linters:
-              - errcheck
-              - bodyclose
+formatters:
+    enable:
+        - gofmt # gofmt artık formatter section'a taşındı
