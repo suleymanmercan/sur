@@ -141,17 +141,23 @@ func (m runnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.results = v.Results
 		m.finished = true
 		m.activeIndex = -1
-		return m, tea.Quit
+		return m, nil
+
+	case tea.KeyMsg:
+		switch v.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "q", "enter":
+			if m.finished {
+				return m, tea.Quit
+			}
+		}
 	}
 
 	return m, nil
 }
 
 func (m runnerModel) View() string {
-	if m.finished {
-		return ""
-	}
-
 	var b strings.Builder
 	width := m.termWidth
 	if width < 40 {
@@ -181,12 +187,12 @@ func (m runnerModel) View() string {
 		if i == m.activeIndex {
 			nameStr = runnerRunning.Render(e.name)
 		}
-		b.WriteString(fmt.Sprintf("  %s  %s%s\n", icon, nameStr, durStr))
+		fmt.Fprintf(&b, "  %s  %s%s\n", icon, nameStr, durStr)
 
 		// Render error line under a failed task.
 		if e.err != nil && e.status == store.TaskFailed {
 			msg := ellipsis(e.err.Error(), width-8)
-			b.WriteString(runnerFail.Render("      └─ " + msg) + "\n")
+			b.WriteString(runnerFail.Render("      └─ "+msg) + "\n")
 		}
 
 		// Render streaming log for the active task.
@@ -205,7 +211,11 @@ func (m runnerModel) View() string {
 	}
 
 	// ── footer ────────────────────────────────────────────────────────────────
-	b.WriteString("\n" + runnerDim.Render("ctrl+c to abort"))
+	if m.finished {
+		b.WriteString("\n" + runnerTitle.Render("All tasks completed! Press Enter or q to exit"))
+	} else {
+		b.WriteString("\n" + runnerDim.Render("ctrl+c to abort"))
+	}
 	return b.String()
 }
 
