@@ -14,18 +14,33 @@ export default defineConfig({
       { text: 'Ana Sayfa', link: '/' },
       { text: 'Kurulum', link: '/kurulum' },
       { text: 'Komutlar', link: '/komutlar' },
+      {
+        text: 'Task Yazma',
+        items: [
+          { text: 'Task Sistemi', link: '/task-sistemi' },
+          { text: 'YAML Rehberi', link: '/yaml-rehberi' },
+          { text: 'Lua Rehberi', link: '/lua-rehberi' }
+        ]
+      },
       { text: 'Güvenlik', link: '/guvenlik' }
     ],
 
     sidebar: [
       {
-        text: 'Dokümantasyon',
+        text: 'Başlangıç',
         items: [
           { text: 'Kurulum', link: '/kurulum' },
           { text: 'Komutlar', link: '/komutlar' },
-          { text: 'Task Sistemi', link: '/task-sistemi' },
           { text: 'Güvenlik Notları', link: '/guvenlik' },
           { text: 'Proje Durumu', link: '/durum' }
+        ]
+      },
+      {
+        text: 'Task Yazma',
+        items: [
+          { text: 'Task Sistemi', link: '/task-sistemi' },
+          { text: 'YAML Rehberi', link: '/yaml-rehberi' },
+          { text: 'Lua Rehberi', link: '/lua-rehberi' }
         ]
       }
     ],

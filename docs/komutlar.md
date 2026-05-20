@@ -2,68 +2,92 @@
 
 `sur`, local host üzerinde çalışan tek binary bir CLI'dır. Root gerektiren işlemler için `sudo` ile çalıştırılır.
 
-## Audit
+---
+
+## `sur check` — Güvenlik Denetimi
+
+Sunucudaki temel güvenlik durumunu kontrol eder ve renkli bir rapor üretir.
 
 ```bash
 sur check
 ```
 
-Sunucudaki temel güvenlik durumunu kontrol eder:
+**Denetlenenler:**
+- SSH root login durumu
+- SSH password authentication
+- SSH port (varsayılan 22 açık mı?)
+- Firewall (ufw / firewalld) durumu
+- fail2ban servisi
+- Otomatik güvenlik güncellemeleri
+- Açık dinleyen soketler
+- sudoers `NOPASSWD` girişleri
 
-- SSH root login
-- SSH password auth
-- SSH port
-- firewall durumu
-- fail2ban
-- automatic updates
-- listening sockets
-- sudoers `NOPASSWD`
-
-Derin Lynis kontrolü:
+**Lynis ile derin denetim:**
 
 ```bash
 sur check --deep
 ```
 
-Lynis yoksa kurup sonra çalıştırmak için:
+Lynis yoksa otomatik kurup çalıştırmak için:
 
 ```bash
 sudo sur check --deep --install-lynis
 ```
 
-## Hardening
+| Bayrak | Açıklama |
+|---|---|
+| `--deep` | Lynis audit dahil et |
+| `--install-lynis` | Lynis yoksa otomatik kur |
+| `--json` | Makine okunabilir JSON çıktı |
 
-Önce dry-run:
+---
+
+## `sur harden` — Güvenlik Sıkılaştırma
+
+Önce dry-run ile neyin değişeceğini gör:
 
 ```bash
 sudo sur harden --dry-run
 ```
 
-Interactive TUI:
+İnteraktif TUI ile task seç:
 
 ```bash
 sudo sur harden
 ```
 
-Sadece belirli task'lar:
+Yalnızca belirli task'ları çalıştır:
 
 ```bash
 sudo sur harden --only enable_ufw,install_fail2ban
 ```
 
-TUI açmadan tüm uygulanabilir task'lar:
+TUI açmadan tüm uygulanabilir task'ları çalıştır:
 
 ```bash
 sudo sur harden --yes
 ```
 
-Dışarıdan özel bir task dizini belirtme:
+Özel task dizini yükle:
 
 ```bash
 sudo sur harden --tasks /etc/sur/custom_tasks
 ```
 
-## Install / Setup
+| Bayrak | Açıklama |
+|---|---|
+| `--dry-run` | Değişiklik yapmadan hangi adımların çalışacağını göster |
+| `--yes` | TUI açmadan tüm uygulanabilir task'ları çalıştır |
+| `--all` | `--yes` ile aynı |
+| `--only <id,id,...>` | Yalnızca belirtilen task ID'lerini çalıştır |
+| `--resume` | Son yarım kalan session'ı devam ettir |
+| `--tasks <dizin>` | Özel task dizini yükle, varsayılanlarla birleştir |
+| `--state <dosya>` | Özel SQLite state dosyası kullan |
+| `--json` | JSON çıktı (TUI devre dışı) |
+
+---
+
+## `sur install` — Sunucu Kurulumu
 
 Fresh server setup task'ları:
 
@@ -71,30 +95,94 @@ Fresh server setup task'ları:
 sudo sur install
 ```
 
-Örnek:
+Belirli task'ları seçerek kur:
 
 ```bash
 sudo sur install --only configure_swap,install_docker,install_caddy
 ```
 
-Swap boyutunu değiştirmek için:
+Swap boyutunu ortam değişkeniyle ayarla:
 
 ```bash
 sudo SUR_SWAP_SIZE=4G sur install --only configure_swap
+# veya
+sudo SUR_SWAP_MB=4096 sur install --only configure_swap
 ```
 
-## History ve Rollback
+`sur install` de aynı bayrakları destekler: `--dry-run`, `--yes`, `--only`, `--tasks`, `--state`, `--json`.
 
-Geçmiş session'lar:
+---
+
+## `sur history` — Geçmiş Session'lar
+
+Önceki tüm oturumları listeler:
 
 ```bash
 sur history
 ```
 
-Rollback:
+---
+
+## `sur rollback` — Geri Alma
 
 ```bash
 sudo sur rollback <session-id>
 ```
 
-Rollback her task için garanti değildir. Config dosyası değiştiren task'lar genelde geri alınabilir; package install ve firewall gibi task'lar manuel toparlama gerektirebilir.
+Session ID'yi `sur history` ile öğrenebilirsin. Rollback her task için garanti değildir — config dosyası değiştiren task'lar genelde geri alınabilir; paket kurulumu ve firewall değişiklikleri manuel toparlama gerektirebilir.
+
+---
+
+## Canlı Çıktı Akışı
+
+`sur harden` veya `sur install` çalışırken task picker kapandıktan sonra canlı bir ilerleme ekranı açılır:
+
+```
+  sur — hardening              Task 2 / 5  ████████░░░░░  40%
+
+  ✓  disable_root_ssh                              0.3s
+  ▶  install_fail2ban          (çalışıyor)
+     $ apt-get install -y fail2ban
+     Reading package lists...
+     Get:1 http://archive.ubuntu.com/ubuntu ...
+     Setting up fail2ban ...
+  ○  enable_ufw
+  ○  sysctl_hardening
+```
+
+| İkon | Anlam |
+|---|---|
+| `▶` turuncu | Şu an çalışıyor |
+| `✓` yeşil | Başarılı |
+| `✗` kırmızı | Başarısız |
+| `↺` sarı | Rollback yapıldı |
+| `·` gri | Atlandı (zaten yapılmış veya OS uyumsuz) |
+| `○` gri | Henüz başlamadı |
+
+> [!TIP]
+> Her exec adımı (`$ komut`) ve o adımın stdout/stderr çıktısı satır satır gerçek zamanlı olarak akar. Uzun süren işlemlerde (`apt-get`, paket indirme vb.) ne olduğu ekrandan takip edilebilir.
+
+---
+
+## CI / Pipe Modu
+
+`sur` bir terminal tespit edemezse ya da `--json` verilirse TUI gösterilmez; çıktılar düz olarak stderr'e yazılır:
+
+```bash
+# CI: tüm task'ları interaktifsiz çalıştır, JSON al
+sudo sur harden --yes --json | jq .results
+
+# Pipe: TUI çalışmaz, log stderr'e akar
+echo | sudo sur harden --only disable_root_ssh
+```
+
+---
+
+## Global Bayraklar
+
+`--json` bayrağı destekleyen komutlarda makine okunabilir JSON çıktısı alınır:
+
+```bash
+sur check --json
+sur harden --dry-run --json
+```

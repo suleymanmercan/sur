@@ -20,8 +20,8 @@ Geliştiriciler ve DevOps ekipleri için karmaşık güvenlik süreçlerini hafi
 Projenin kararlılığını ve yetenek setini artırmak adına aşağıdaki başlıklar aktif bir şekilde geliştirilmektedir:
 
 - **Çoklu Dağıtım Test Matrisi (VM Smoke Tests):** Debian, Ubuntu, RHEL, Fedora ve openSUSE üzerinde otomatik sanal makine test altyapısının kurulması.
-- **Gelişmiş TUI Oturum Arayüzü:** Değişikliklerin uygulanma anında detaylı ilerleme (progress) ve sonuç raporlama ekranının zenginleştirilmesi.
-- **Check -> Auto-Fix Eşleşmesi:** `sur check` bulgularının, sistemdeki uygun düzeltme (hardening) task'ları ile doğrudan eşleştirilerek kullanıcılara önerilmesi.
+- ~~**Gelişmiş TUI Oturum Arayüzü**~~ ✅ **Tamamlandı** — Task'lar çalışırken canlı ilerleme ekranı, satır satır komut çıktısı akışı ve progress bar eklendi.
+- **Check → Auto-Fix Eşleşmesi:** `sur check` bulgularının, sistemdeki uygun düzeltme (hardening) task'ları ile doğrudan eşleştirilerek kullanıcılara önerilmesi.
 - **GitHub Release Entegrasyonu:** Release pipeline süreçlerinin otomatik testler eşliğinde uçtan uca doğrulanması.
 
 ## Tasarım Felsefesi ve Konumlandırma
