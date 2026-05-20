@@ -96,38 +96,70 @@ esac
 
 # detect OS
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-if [ "$OS" != "linux" ]; then
-  fail "sur only supports Linux (detected: $OS)"
+case "$OS" in
+  linux|darwin) ;;
+  *) fail "unsupported OS: $OS" ;;
+esac
+
+# resolve latest version tag
+info "resolving latest release..."
+LATEST_URL="https://github.com/${REPO}/releases/latest"
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' "$LATEST_URL" 2>/dev/null | sed 's|.*/tag/v||') \
+  || VERSION=$(wget -q --server-response --spider "$LATEST_URL" 2>&1 | grep Location | sed 's|.*/tag/v||' | tr -d ' \r')
+if [ -z "$VERSION" ]; then
+  fail "could not resolve latest version"
 fi
+info "latest version: v${VERSION}"
 
-ASSET="sur-linux-${ARCH}"
-URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
-CHECKSUM_URL="${URL}.sha256"
+# GoReleaser archive format: sur_<version>_<os>_<arch>.tar.gz
+ASSET="sur_${VERSION}_${OS}_${ARCH}.tar.gz"
+BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
+URL="${BASE_URL}/${ASSET}"
+CHECKSUM_URL="${BASE_URL}/checksums.txt"
 
-info "detected: linux/${ARCH}"
+info "detected: ${OS}/${ARCH}"
 if [ "$UPDATE" -eq 1 ] && [ -x "${INSTALL_DIR}/${BINARY}" ]; then
   info "current: $("${INSTALL_DIR}/${BINARY}" --version 2>/dev/null || printf 'unknown')"
 fi
-info "downloading $ASSET..."
+info "downloading ${ASSET}..."
 
-# download
+# download to temp dir
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
-TMP="${TMP_DIR}/${ASSET}"
-CHECKSUM="${TMP_DIR}/${ASSET}.sha256"
 
-download "$URL" "$TMP" "$ASSET"
-download "$CHECKSUM_URL" "$CHECKSUM" "${ASSET}.sha256"
+TMP_ARCHIVE="${TMP_DIR}/${ASSET}"
+TMP_CHECKSUMS="${TMP_DIR}/checksums.txt"
 
-if ! command -v sha256sum >/dev/null 2>&1; then
-  fail "sha256sum required to verify download"
+download "$URL"           "$TMP_ARCHIVE"   "$ASSET"
+download "$CHECKSUM_URL"  "$TMP_CHECKSUMS" "checksums.txt"
+
+# verify checksum
+if command -v sha256sum >/dev/null 2>&1; then
+  info "verifying checksum..."
+  EXPECTED=$(grep "${ASSET}" "$TMP_CHECKSUMS" | awk '{print $1}')
+  if [ -z "$EXPECTED" ]; then
+    fail "checksum for ${ASSET} not found in checksums.txt"
+  fi
+  ACTUAL=$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')
+  if [ "$ACTUAL" != "$EXPECTED" ]; then
+    fail "checksum mismatch! expected=${EXPECTED} got=${ACTUAL}"
+  fi
+  ok "checksum verified"
+else
+  info "sha256sum not found, skipping checksum verification"
 fi
 
-info "verifying checksum..."
-(cd "$TMP_DIR" && sha256sum -c "${ASSET}.sha256") >/dev/null
+# extract binary from archive
+info "extracting..."
+tar -xzf "$TMP_ARCHIVE" -C "$TMP_DIR"
+
+TMP_BINARY="${TMP_DIR}/${BINARY}"
+if [ ! -f "$TMP_BINARY" ]; then
+  fail "binary '${BINARY}' not found in archive"
+fi
 
 mkdir -p "$INSTALL_DIR"
-install -m 0755 "$TMP" "${INSTALL_DIR}/${BINARY}"
+install -m 0755 "$TMP_BINARY" "${INSTALL_DIR}/${BINARY}"
 
 if ! "${INSTALL_DIR}/${BINARY}" --version >/dev/null 2>&1; then
   fail "installed binary did not run correctly"
