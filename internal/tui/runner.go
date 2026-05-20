@@ -195,11 +195,13 @@ func (m runnerModel) View() string {
 			b.WriteString(runnerFail.Render("      └─ "+msg) + "\n")
 		}
 
-		// Render streaming log for the active task.
-		if i == m.activeIndex && len(e.logs) > 0 {
-			// Pick last N lines that fit.
+		// Render streaming log for the active task (while running)
+		// OR for all tasks that have logs once finished.
+		showLogs := (i == m.activeIndex) || (m.finished && len(e.logs) > 0)
+		if showLogs && len(e.logs) > 0 {
 			show := e.logs
-			if len(show) > maxVisible {
+			if !m.finished && len(show) > maxVisible {
+				// While running, cap to visible lines; when finished show all.
 				show = show[len(show)-maxVisible:]
 			}
 			for _, line := range show {
@@ -302,7 +304,7 @@ func RunProgress(
 	applyFn func(send func(tea.Msg)),
 ) ([]engine.Result, error) {
 	m := newRunnerModel(tasks, title)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m)
 
 	// Wire engine callbacks to send messages into the Bubble Tea program.
 	send := func(msg tea.Msg) { p.Send(msg) }
