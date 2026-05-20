@@ -1,0 +1,82 @@
+version: 2
+
+project_name: sur
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: sur
+    main: .
+    binary: sur
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+    ldflags:
+      - -s -w -X github.com/suleymanmercan/sur/cmd.Version={{.Version}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: sur
+    name_template: "sur_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE*
+      - install_tasks/**
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: "🚀 New Features"
+      regexp: "^feat"
+      order: 0
+    - title: "🐛 Bug Fixes"
+      regexp: "^fix"
+      order: 1
+    - title: "🔒 Security"
+      regexp: "^sec"
+      order: 2
+    - title: "⚙️ Other"
+      order: 99
+
+release:
+  github:
+    owner: suleymanmercan
+    name: sur
+  name_template: "v{{.Version}}"
+  header: |
+    ## sur v{{.Version}}
+
+    A Linux server hardening tool with Lua scripting support.
+  footer: |
+    ---
+    **Full Changelog**: https://github.com/suleymanmercan/sur/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ### Quick Install
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | bash
+    ```
+  draft: false
+  prerelease: auto

@@ -4,33 +4,31 @@ on:
     push:
         tags:
             - "v*"
+
 permissions:
     contents: write
 
 jobs:
-    build:
+    release:
+        name: GoReleaser
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # GoReleaser needs full git history for changelog
 
-            - uses: actions/setup-go@v5
+            - name: Set up Go
+              uses: actions/setup-go@v5
               with:
                   go-version-file: go.mod
+                  cache: true
 
-            - name: Build binaries
-              run: |
-                  VERSION="${GITHUB_REF_NAME#v}"
-                  LDFLAGS="-s -w -X github.com/suleymanmercan/sur/cmd.Version=${VERSION}"
-                  GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "${LDFLAGS}" -o sur-linux-amd64 .
-                  GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "${LDFLAGS}" -o sur-linux-arm64 .
-                  sha256sum sur-linux-amd64 > sur-linux-amd64.sha256
-                  sha256sum sur-linux-arm64 > sur-linux-arm64.sha256
-
-            - name: Create Release
-              uses: softprops/action-gh-release@v2
+            - name: Run GoReleaser
+              uses: goreleaser/goreleaser-action@v6
               with:
-                  files: |
-                      sur-linux-amd64
-                      sur-linux-amd64.sha256
-                      sur-linux-arm64
-                      sur-linux-arm64.sha256
+                  distribution: goreleaser
+                  version: "~> v2"
+                  args: release --clean
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
