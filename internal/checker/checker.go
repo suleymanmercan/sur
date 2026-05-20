@@ -14,6 +14,8 @@ import (
 	"github.com/suleymanmercan/sur/internal/common"
 )
 
+var sshdDropinGlob = "/etc/ssh/sshd_config.d/*.conf"
+
 // CheckFunc runs a single built-in check.
 type CheckFunc func(ctx context.Context) []common.Finding
 
@@ -109,7 +111,7 @@ func sshdConfigValueFromFiles(mainContent, key string) string {
 	val := sshdConfigValue(mainContent, key)
 
 	// Walk drop-in directory; ignore errors (directory may not exist).
-	matches, _ := filepath.Glob("/etc/ssh/sshd_config.d/*.conf")
+	matches, _ := filepath.Glob(sshdDropinGlob)
 	for _, p := range matches {
 		b, err := os.ReadFile(p)
 		if err != nil {

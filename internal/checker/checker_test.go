@@ -65,6 +65,12 @@ func TestSshdConfigValue_LastWins(t *testing.T) {
 // TestSshdConfigValueFromFiles_FallbackToMain verifies that when no
 // sshd_config.d drop-in files exist, the main config value is returned.
 func TestSshdConfigValueFromFiles_FallbackToMain(t *testing.T) {
+	origGlob := sshdDropinGlob
+	t.Cleanup(func() { sshdDropinGlob = origGlob })
+
+	tempDir := t.TempDir()
+	sshdDropinGlob = filepath.Join(tempDir, "*.conf")
+
 	mainCfg := "PasswordAuthentication yes\n"
 	val := sshdConfigValueFromFiles(mainCfg, "PasswordAuthentication")
 	if val != "yes" {
@@ -74,18 +80,17 @@ func TestSshdConfigValueFromFiles_FallbackToMain(t *testing.T) {
 
 // TestSshdConfigValueFromFiles_DropinFile writes an actual drop-in file
 // and verifies it overrides the main config value.
-// This test requires root and a Linux host with /etc/ssh/sshd_config.d.
 func TestSshdConfigValueFromFiles_DropinFile(t *testing.T) {
-	dropinDir := "/etc/ssh/sshd_config.d"
-	if _, err := os.Stat(dropinDir); err != nil {
-		t.Skip("sshd_config.d not present; skipping drop-in override test")
-	}
+	origGlob := sshdDropinGlob
+	t.Cleanup(func() { sshdDropinGlob = origGlob })
 
-	tmp := filepath.Join(dropinDir, "99-sur-test.conf")
-	if err := os.WriteFile(tmp, []byte("PermitRootLogin no\n"), 0o644); err != nil {
-		t.Skipf("cannot write to %s (not root?): %v", dropinDir, err)
+	tempDir := t.TempDir()
+	sshdDropinGlob = filepath.Join(tempDir, "*.conf")
+
+	tmpFile := filepath.Join(tempDir, "99-sur-test.conf")
+	if err := os.WriteFile(tmpFile, []byte("PermitRootLogin no\n"), 0o644); err != nil {
+		t.Fatalf("cannot write to temp file: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Remove(tmp) })
 
 	mainCfg := "PermitRootLogin yes\n"
 	val := sshdConfigValueFromFiles(mainCfg, "PermitRootLogin")
