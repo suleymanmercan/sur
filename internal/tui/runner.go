@@ -77,6 +77,7 @@ type runnerModel struct {
 	termWidth   int
 	termHeight  int
 	finished    bool
+	goBack      bool // true when user pressed enter/q to go back to task picker
 	results     []engine.Result
 }
 
@@ -149,6 +150,7 @@ func (m runnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "q", "enter":
 			if m.finished {
+				m.goBack = true
 				return m, tea.Quit
 			}
 		}
@@ -214,7 +216,7 @@ func (m runnerModel) View() string {
 
 	// ── footer ────────────────────────────────────────────────────────────────
 	if m.finished {
-		b.WriteString("\n" + runnerTitle.Render("All tasks completed! Press Enter or q to exit"))
+		b.WriteString("\n" + runnerTitle.Render("All tasks completed! Press Enter to run again • q to quit"))
 	} else {
 		b.WriteString("\n" + runnerDim.Render("ctrl+c to abort"))
 	}
@@ -298,11 +300,17 @@ func ellipsis(s string, max int) string {
 //	    results := runner.Apply(ctx, sessionID, tasks)
 //	    send(tui.AllDoneMsg{Results: results})
 //	})
+// RunResult holds the outcome of RunProgress.
+type RunResult struct {
+	Results []engine.Result
+	GoBack  bool // true when the user pressed Enter/q after completion (wants to return to picker)
+}
+
 func RunProgress(
 	tasks []engine.RunnableTask,
 	title string,
 	applyFn func(send func(tea.Msg)),
-) ([]engine.Result, error) {
+) (RunResult, error) {
 	m := newRunnerModel(tasks, title)
 	p := tea.NewProgram(m)
 
@@ -313,11 +321,11 @@ func RunProgress(
 
 	out, err := p.Run()
 	if err != nil {
-		return nil, err
+		return RunResult{}, err
 	}
 	final, ok := out.(runnerModel)
 	if !ok {
-		return nil, fmt.Errorf("unexpected model type")
+		return RunResult{}, fmt.Errorf("unexpected model type")
 	}
-	return final.results, nil
+	return RunResult{Results: final.results, GoBack: final.goBack}, nil
 }

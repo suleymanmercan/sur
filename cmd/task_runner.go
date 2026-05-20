@@ -127,7 +127,7 @@ func runTaskSet(ctx context.Context, tasks []engine.RunnableTask, opts taskRunOp
 		if title == "" {
 			title = "sur — running tasks"
 		}
-		results, err := tui.RunProgress(toRun, title, func(send func(tea.Msg)) {
+		runResult, err := tui.RunProgress(toRun, title, func(send func(tea.Msg)) {
 			// Wire engine callbacks → Bubble Tea messages.
 			r.Progress = engine.Progress{
 				OnTaskStart: func(id, name string, index, total int) {
@@ -143,7 +143,14 @@ func runTaskSet(ctx context.Context, tasks []engine.RunnableTask, opts taskRunOp
 			results := r.Apply(runCtx, sessionID, toRun)
 			send(tui.AllDoneMsg{Results: results})
 		})
-		return sessionID, results, err
+		if err != nil {
+			return sessionID, nil, err
+		}
+		// User pressed Enter → go back to the task picker.
+		if runResult.GoBack {
+			return runTaskSet(ctx, tasks, opts)
+		}
+		return sessionID, runResult.Results, nil
 	}
 
 	// Fallback: plain stderr logging (CI / pipe / JSON mode).
