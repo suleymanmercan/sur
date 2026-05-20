@@ -3,14 +3,17 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -252,13 +255,19 @@ func (t Task) Execute(ctx context.Context, dryRun bool, logFn func(format string
 		return nil
 	}
 	for _, s := range t.Exec {
-		out, code := runShell(ctx, s.Command)
+		logFn("$ %s", s.Command)
 		expected := 0
 		if s.ExpectExit != nil {
 			expected = *s.ExpectExit
 		}
+		code, err := runShellStream(ctx, s.Command, func(line string) {
+			logFn("%s", line)
+		})
+		if err != nil {
+			return fmt.Errorf("step %q: %w", s.Command, err)
+		}
 		if code != expected {
-			return fmt.Errorf("step %q exited %d: %s", s.Command, code, strings.TrimSpace(out))
+			return fmt.Errorf("step %q exited %d", s.Command, code)
 		}
 	}
 	return nil
@@ -302,6 +311,17 @@ func NeedsRun(ctx context.Context, t Task) (bool, int) {
 	return t.NeedsRun(ctx)
 }
 
+// Progress holds optional callbacks that receive live execution events.
+// Any field may be nil; nil callbacks are silently skipped.
+type Progress struct {
+	// OnTaskStart is called just before a task's exec phase begins.
+	OnTaskStart func(id, name string, index, total int)
+	// OnTaskLog is called for every line of output produced by a task's shell commands.
+	OnTaskLog func(line string)
+	// OnTaskDone is called when a task finishes (success, failure, or skipped).
+	OnTaskDone func(id string, status store.TaskStatus, dur time.Duration, err error)
+}
+
 // Runner executes tasks and records state.
 type Runner struct {
 	Store    *store.Store
@@ -309,14 +329,21 @@ type Runner struct {
 	Hostname string
 	// Logger receives human-readable progress messages.
 	Logger func(format string, args ...any)
+	// Progress receives structured live progress events (optional).
+	Progress Progress
 }
 
 func (r *Runner) log(format string, args ...any) {
-	if r.Logger != nil {
-		r.Logger(format, args...)
+	line := fmt.Sprintf(format, args...)
+	if r.Progress.OnTaskLog != nil {
+		r.Progress.OnTaskLog(line)
 		return
 	}
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
+	if r.Logger != nil {
+		r.Logger("%s", line)
+		return
+	}
+	fmt.Fprintln(os.Stderr, line)
 }
 
 // StartSession opens a new persistent session and returns its ID.
@@ -335,15 +362,30 @@ func (r *Runner) Apply(ctx context.Context, sessionID string, tasks []RunnableTa
 	var results []Result
 	anyFailed := false
 	anyDid := false
-	for _, t := range tasks {
+	total := len(tasks)
+	for i, t := range tasks {
 		select {
 		case <-ctx.Done():
-			results = append(results, Result{TaskID: t.GetID(), Status: store.TaskSkipped, Err: ctx.Err()})
+			res := Result{TaskID: t.GetID(), Status: store.TaskSkipped, Err: ctx.Err()}
+			results = append(results, res)
+			if r.Progress.OnTaskDone != nil {
+				r.Progress.OnTaskDone(res.TaskID, res.Status, 0, res.Err)
+			}
 			continue
 		default:
 		}
+		if r.Progress.OnTaskStart != nil {
+			name := t.GetName()
+			if name == "" {
+				name = t.GetID()
+			}
+			r.Progress.OnTaskStart(t.GetID(), name, i+1, total)
+		}
 		res := r.runTask(ctx, sessionID, t)
 		results = append(results, res)
+		if r.Progress.OnTaskDone != nil {
+			r.Progress.OnTaskDone(res.TaskID, res.Status, res.Duration, res.Err)
+		}
 		switch res.Status {
 		case store.TaskFailed, store.TaskRolledBack:
 			anyFailed = true
@@ -513,4 +555,46 @@ func runShell(ctx context.Context, command string) (string, int) {
 		return string(out), -1
 	}
 	return string(out), 0
+}
+
+// runShellStream runs command and calls lineFn for each line of combined output.
+// Returns (exitCode, error). A non-zero exit code is NOT an error unless the
+// process could not be started or waited on.
+func runShellStream(ctx context.Context, command string, lineFn func(string)) (int, error) {
+	cmd := exec.CommandContext(ctx, "sh", "-c", command) // #nosec G204 -- command comes from operator-authored YAML task definitions
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return -1, fmt.Errorf("stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return -1, fmt.Errorf("stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return -1, fmt.Errorf("start: %w", err)
+	}
+
+	// Drain both pipes concurrently, calling lineFn for each line.
+	var wg sync.WaitGroup
+	drain := func(r io.Reader) {
+		defer wg.Done()
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			lineFn(scanner.Text())
+		}
+	}
+	wg.Add(2)
+	go drain(stdout)
+	go drain(stderr)
+	wg.Wait()
+
+	if err := cmd.Wait(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode(), nil
+		}
+		return -1, err
+	}
+	return 0, nil
 }

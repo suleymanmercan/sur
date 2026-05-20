@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"golang.org/x/term"
 
 	"github.com/suleymanmercan/sur/internal/engine"
@@ -118,6 +119,34 @@ func runTaskSet(ctx context.Context, tasks []engine.RunnableTask, opts taskRunOp
 
 	runCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
+
+	// Use the live progress TUI when we have a real interactive terminal
+	// and the caller is not requesting JSON output.
+	if term.IsTerminal(int(os.Stdout.Fd())) && !jsonOutput { // #nosec G115
+		title := opts.TUITitle
+		if title == "" {
+			title = "sur — running tasks"
+		}
+		results, err := tui.RunProgress(toRun, title, func(send func(tea.Msg)) {
+			// Wire engine callbacks → Bubble Tea messages.
+			r.Progress = engine.Progress{
+				OnTaskStart: func(id, name string, index, total int) {
+					send(tui.TaskStartMsg{ID: id, Name: name, Index: index, Total: total})
+				},
+				OnTaskLog: func(line string) {
+					send(tui.TaskLogMsg{Line: line})
+				},
+				OnTaskDone: func(id string, status store.TaskStatus, dur time.Duration, execErr error) {
+					send(tui.TaskDoneMsg{ID: id, Status: status, Duration: dur, Err: execErr})
+				},
+			}
+			results := r.Apply(runCtx, sessionID, toRun)
+			send(tui.AllDoneMsg{Results: results})
+		})
+		return sessionID, results, err
+	}
+
+	// Fallback: plain stderr logging (CI / pipe / JSON mode).
 	return sessionID, r.Apply(runCtx, sessionID, toRun), nil
 }
 
