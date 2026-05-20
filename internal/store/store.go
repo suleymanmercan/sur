@@ -32,7 +32,7 @@ func Open(path string) (*Store, error) {
 			path = DefaultPath
 		}
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil { // #nosec G703 -- path is the hardcoded DefaultPath or operator-set SUR_DB env var
 		return nil, fmt.Errorf("create db dir: %w", err)
 	}
 	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")

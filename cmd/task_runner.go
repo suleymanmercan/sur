@@ -208,7 +208,7 @@ func selectTaskSet(r *engine.Runner, tasks []engine.RunnableTask, opts taskRunOp
 		return nil, "", err
 	}
 
-	if opts.Yes || opts.All || len(opts.OnlyIDs) > 0 || !term.IsTerminal(int(os.Stdin.Fd())) {
+	if opts.Yes || opts.All || len(opts.OnlyIDs) > 0 || !term.IsTerminal(int(os.Stdin.Fd())) { // #nosec G115 -- fd value fits in int on all supported platforms
 		filtered, err := filterTasks(tasks, opts.OnlyIDs)
 		if err != nil {
 			_ = r.Store.FinishSession(sid, store.SessionFailed)

@@ -50,7 +50,7 @@ func Detect() (*OSInfo, error) {
 func detectFromFile(path string) (*OSInfo, error) {
 	info := &OSInfo{Family: FamilyUnknown, PkgManager: "unknown"}
 
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- path is always /etc/os-release (fixed system path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return info, nil

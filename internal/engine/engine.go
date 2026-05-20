@@ -181,7 +181,7 @@ func LoadAllRunnableTasksFS(fs embed.FS, dir string) ([]RunnableTask, error) {
 
 func loadTaskFile(path string) (Task, error) {
 	var t Task
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) // #nosec G304 -- path comes from filepath.Glob over controlled task directories
 	if err != nil {
 		return t, err
 	}
@@ -397,7 +397,7 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t RunnableTask) 
 	var backupPath string
 	var backupBlob []byte
 	for _, f := range t.GetBackupFiles() {
-		if data, err := os.ReadFile(f); err == nil {
+		if data, err := os.ReadFile(f); err == nil { // #nosec G304 -- backup_files paths come from trusted YAML task definitions
 			backupBlob = data
 			backupPath = f
 			break
@@ -441,7 +441,7 @@ func (r *Runner) runTask(ctx context.Context, sessionID string, t RunnableTask) 
 func (r *Runner) rollbackTask(ctx context.Context, t RunnableTask, backupPath string, blob []byte) error {
 	// Restore the backup file first so rollback commands can rely on it.
 	if backupPath != "" && len(blob) > 0 {
-		if err := os.WriteFile(backupPath, blob, 0o644); err != nil {
+		if err := os.WriteFile(backupPath, blob, 0o600); err != nil { // #nosec G703 -- backupPath originates from trusted YAML task config
 			return fmt.Errorf("restore %s: %w", backupPath, err)
 		}
 	}
@@ -504,7 +504,7 @@ func (r *Runner) RollbackSessionTasks(ctx context.Context, sessionID string, tas
 }
 
 func runShell(ctx context.Context, command string) (string, int) {
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
+	cmd := exec.CommandContext(ctx, "sh", "-c", command) // #nosec G204 -- command comes from operator-authored YAML task definitions
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

@@ -33,7 +33,7 @@ func Run(ctx context.Context, reportPath string) ([]common.Finding, error) {
 	}
 	_ = os.Remove(reportPath)
 
-	cmd := exec.CommandContext(ctx, "lynis", "audit", "system",
+	cmd := exec.CommandContext(ctx, "lynis", "audit", "system", // #nosec G204 -- "lynis" is a fixed well-known binary, not user-controlled
 		"--quiet", "--no-colors", "--report-file", reportPath)
 	// lynis returns non-zero for warnings — we don't treat that as fatal.
 	_ = cmd.Run()
@@ -44,7 +44,7 @@ func Run(ctx context.Context, reportPath string) ([]common.Finding, error) {
 // ParseReport parses the key=value report file lynis writes.
 // Documented keys: https://cisofy.com/documentation/lynis/get-started/#reading-the-report-file
 func ParseReport(path string) ([]common.Finding, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- path is the lynis report file written by lynis itself to a controlled location
 	if err != nil {
 		return nil, err
 	}

@@ -196,7 +196,7 @@ func (t LuaTask) Revert(ctx context.Context, backupPath string, logFn func(forma
 
 // LoadLuaTask reads and parses a Lua task from a file path.
 func LoadLuaTask(path string) (LuaTask, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) // #nosec G304 -- path comes from filepath.Glob over controlled task directories
 	if err != nil {
 		return LuaTask{}, err
 	}
@@ -310,7 +310,7 @@ func registerBridge(ctx context.Context, L *lua.LState, logFn func(format string
 
 	L.SetGlobal("read_file", L.NewFunction(func(L *lua.LState) int {
 		path := L.CheckString(1)
-		b, err := os.ReadFile(path)
+		b, err := os.ReadFile(path) // #nosec G304 -- path is provided by the Lua script author (trusted task content)
 		if err != nil {
 			L.Push(lua.LNil)
 			L.Push(lua.LString(err.Error()))
@@ -331,7 +331,7 @@ func registerBridge(ctx context.Context, L *lua.LState, logFn func(format string
 			L.Push(lua.LNil)
 			return 1
 		}
-		err := os.WriteFile(path, []byte(content), 0o644)
+		err := os.WriteFile(path, []byte(content), 0o600) // #nosec G306 -- Lua task author controls the target path; 0600 is enforced
 		if err != nil {
 			L.Push(lua.LString(err.Error()))
 			return 1

@@ -76,7 +76,7 @@ func fileExists(p string) bool {
 }
 
 func readFile(p string) (string, error) {
-	b, err := os.ReadFile(p)
+	b, err := os.ReadFile(p) // #nosec G304 -- p is a well-known system config path (sshd_config, sudoers, apt.conf.d)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +113,7 @@ func sshdConfigValueFromFiles(mainContent, key string) string {
 	// Walk drop-in directory; ignore errors (directory may not exist).
 	matches, _ := filepath.Glob(sshdDropinGlob)
 	for _, p := range matches {
-		b, err := os.ReadFile(p)
+		b, err := os.ReadFile(p) // #nosec G304 -- p comes from filepath.Glob over /etc/ssh/sshd_config.d/*.conf (fixed base dir)
 		if err != nil {
 			continue
 		}
@@ -157,7 +157,7 @@ func sshdValue(effective map[string]string, content, key string) string {
 }
 
 func runCmd(ctx context.Context, name string, args ...string) (string, int, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) // #nosec G204 -- name is always a fixed system binary (sshd, ufw, ss, systemctl, etc.)
 	out, err := cmd.CombinedOutput()
 	code := 0
 	if err != nil {
