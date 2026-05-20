@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"embed"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/suleymanmercan/sur/internal/engine"
@@ -45,5 +48,37 @@ func TestSupportsOSNormalizesAlmaAlias(t *testing.T) {
 	info := &osdetect.OSInfo{ID: "almalinux", Family: osdetect.FamilyRHEL}
 	if !supportsOS(task, info) {
 		t.Fatal("expected alma alias to match almalinux")
+	}
+}
+
+func TestLoadTaskSetMerging(t *testing.T) {
+	tempDir := t.TempDir()
+
+	overrideTaskPath := filepath.Join(tempDir, "custom_task.yaml")
+	err := os.WriteFile(overrideTaskPath, []byte(`
+id: custom_test_task
+name: Custom Test Task
+`), 0644)
+	if err != nil {
+		t.Fatalf("failed to write override task: %v", err)
+	}
+
+	var emptyFS embed.FS
+	tasks, err := loadTaskSet(emptyFS, "tasks", tempDir)
+	if err != nil {
+		t.Fatalf("loadTaskSet failed: %v", err)
+	}
+
+	found := false
+	for _, task := range tasks {
+		if task.GetID() == "custom_test_task" {
+			found = true
+			if task.GetName() != "Custom Test Task" {
+				t.Errorf("expected task name 'Custom Test Task', got %q", task.GetName())
+			}
+		}
+	}
+	if !found {
+		t.Error("expected custom_test_task to be loaded from overrideDir")
 	}
 }

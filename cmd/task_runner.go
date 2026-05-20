@@ -47,32 +47,30 @@ func loadTaskSet(fs embed.FS, embeddedDir, overrideDir string) ([]engine.Runnabl
 		}
 	}
 
-	// 2. Load default directories if overrideDir is empty
-	if overrideDir == "" {
-		// Default system directory e.g., /etc/sur/tasks or /etc/sur/install_tasks
-		sysDir := filepath.Join("/etc/sur", embeddedDir)
-		sysTasks, err := engine.LoadAllRunnableTasks(sysDir)
-		if err == nil {
-			for _, t := range sysTasks {
-				byID[t.GetID()] = t
-			}
+	// 2. Load default directories
+	// Default system directory e.g., /etc/sur/tasks or /etc/sur/install_tasks
+	sysDir := filepath.Join("/etc/sur", embeddedDir)
+	sysTasks, err := engine.LoadAllRunnableTasks(sysDir)
+	if err == nil {
+		for _, t := range sysTasks {
+			byID[t.GetID()] = t
 		}
+	}
 
-		// Also check local directory (e.g. ./tasks or ./install_tasks)
-		localTasks, err := engine.LoadAllRunnableTasks(embeddedDir)
-		if err == nil {
-			for _, t := range localTasks {
-				byID[t.GetID()] = t
-			}
+	// Also check local directory (e.g. ./tasks or ./install_tasks)
+	localTasks, err := engine.LoadAllRunnableTasks(embeddedDir)
+	if err == nil {
+		for _, t := range localTasks {
+			byID[t.GetID()] = t
 		}
-	} else {
-		// If overrideDir is specified, it overrides everything and only loads from there
+	}
+
+	// 3. Load override directory if specified, and merge/override
+	if overrideDir != "" {
 		overrideTasks, err := engine.LoadAllRunnableTasks(overrideDir)
 		if err != nil {
 			return nil, err
 		}
-		// Clear map and only use override tasks
-		byID = map[string]engine.RunnableTask{}
 		for _, t := range overrideTasks {
 			byID[t.GetID()] = t
 		}

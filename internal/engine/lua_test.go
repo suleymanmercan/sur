@@ -327,6 +327,23 @@ end
 	}
 }
 
+func TestBuiltInLuaTasksParse(t *testing.T) {
+	// Path should match where tasks are located relative to test package
+	matches, err := filepath.Glob("../../tasks/*.lua")
+	if err != nil {
+		t.Fatalf("failed to find lua files: %v", err)
+	}
+	if len(matches) == 0 {
+		t.Fatal("expected to find built-in lua tasks, got 0")
+	}
+	for _, path := range matches {
+		_, err := LoadLuaTask(path)
+		if err != nil {
+			t.Errorf("failed to parse task %s: %v", filepath.Base(path), err)
+		}
+	}
+}
+
 // Helper function to check file existence in tests
 func fileExists(path string) bool {
 	_, err := os.Stat(path)

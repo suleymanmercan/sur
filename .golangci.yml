@@ -7,7 +7,6 @@ linters:
     default: none # eski disable-all'ın karşılığı
     enable:
         - errcheck
-        - gosimple
         - govet
         - ineffassign
         - staticcheck
@@ -31,6 +30,9 @@ linters:
               linters:
                   - errcheck
                   - bodyclose
+            - linters:
+                  - errcheck
+              text: "Error return value of `.*Close` is not checked"
 
 formatters:
     enable:
