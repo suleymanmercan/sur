@@ -39,9 +39,9 @@ git push origin "$VERSION"
 
 Go to **Actions → Release**. It will:
 
-1. Build `sur-linux-amd64` and `sur-linux-arm64`.
-2. Generate `*.sha256` checksum files.
-3. Create a GitHub Release and upload all four assets.
+1. Build Linux and Darwin archives for amd64 and arm64.
+2. Generate a unified `checksums.txt` file.
+3. Create a GitHub Release and upload the archives plus `checksums.txt`.
 
 The release is done when the workflow turns green.
 
@@ -76,9 +76,10 @@ If a critical bug is found after a release:
 
 ## Release assets checklist
 
-After the Release workflow finishes, confirm these four files are attached to the GitHub Release:
+After the Release workflow finishes, confirm these files are attached to the GitHub Release:
 
-- [ ] `sur-linux-amd64`
-- [ ] `sur-linux-amd64.sha256`
-- [ ] `sur-linux-arm64`
-- [ ] `sur-linux-arm64.sha256`
+- [ ] `sur_<version>_linux_amd64.tar.gz`
+- [ ] `sur_<version>_linux_arm64.tar.gz`
+- [ ] `sur_<version>_darwin_amd64.tar.gz`
+- [ ] `sur_<version>_darwin_arm64.tar.gz`
+- [ ] `checksums.txt`

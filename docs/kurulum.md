@@ -1,6 +1,14 @@
 # Kurulum ve Güncelleme
 
-`sur`, tek bir binary dosyasından oluşur. Kurulum script'i Linux mimarisini (`amd64` veya `arm64`) otomatik algılar, GitHub release asset'ini indirir ve checksum doğrulaması yapar.
+`sur`, tek bir binary dosyasından oluşur. Kurulum script'i işletim sistemi ve mimariyi algılar, GitHub Release arşivini indirir, `checksums.txt` üzerinden doğrular ve binary'yi `/usr/local/bin/sur` altına yerleştirir.
+
+| Platform | Mimari | Release asset |
+| --- | --- | --- |
+| Linux | `amd64`, `arm64` | `sur_<version>_linux_<arch>.tar.gz` |
+| macOS | `amd64`, `arm64` | `sur_<version>_darwin_<arch>.tar.gz` |
+
+> [!NOTE]
+> Ana hedef Linux/VPS kullanımıdır. macOS build'i lokal deneme ve geliştirme kolaylığı içindir; hardening task'ları Linux sistem dosyalarına göre tasarlanır.
 
 ## Hızlı Kurulum (Tavsiye Edilen)
 
@@ -11,7 +19,26 @@ curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh 
 Kurulum sonrası:
 
 ```bash
+sur --version
 sur check
+```
+
+## İlk Sunucu Akışı
+
+Yeni bir VPS üzerinde aceleyle tüm task'ları çalıştırmak yerine şu sırayı kullan:
+
+```bash
+sur check
+sudo sur harden --dry-run
+sudo sur harden
+sur history
+```
+
+Server setup task'ları için:
+
+```bash
+sudo sur install --dry-run
+sudo sur install
 ```
 
 ## Güncelleme
@@ -22,7 +49,7 @@ Mevcut kurulumu son release'e güncellemek için:
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --update
 ```
 
-Bu işlem `/usr/local/bin/sur` binary'sini değiştirir. `/var/lib/sur/sur.db` state dosyasını silmez.
+Bu işlem yalnızca `/usr/local/bin/sur` binary'sini değiştirir. `/var/lib/sur/sur.db` state dosyasını ve eski session kayıtlarını silmez.
 
 ## Kaldırma İşlemi
 
@@ -46,3 +73,12 @@ cd sur
 make build
 sudo make install
 ```
+
+## Kurulum Sonrası Kontrol
+
+| Kontrol | Komut |
+| --- | --- |
+| Binary PATH'te mi? | `command -v sur` |
+| Sürüm doğru mu? | `sur --version` |
+| Temel audit çalışıyor mu? | `sur check` |
+| State yazılabiliyor mu? | `sudo sur harden --dry-run --json` |

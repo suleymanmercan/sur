@@ -1,0 +1,88 @@
+:root {
+  --vp-c-brand-1: #18a058;
+  --vp-c-brand-2: #1fb86a;
+  --vp-c-brand-3: #136f3a;
+  --vp-c-bg: #0b1014;
+  --vp-c-bg-alt: #0f171d;
+  --vp-c-bg-soft: #141f26;
+  --vp-c-border: #26343d;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #22c55e 0%, #38bdf8 100%);
+}
+
+.VPHome .VPHero .heading {
+  letter-spacing: 0;
+}
+
+.VPHome .VPHero .tagline {
+  max-width: 760px;
+}
+
+.VPFeature {
+  border: 1px solid var(--vp-c-border);
+}
+
+.VPFeature .title {
+  font-size: 17px;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+.vp-doc th {
+  white-space: nowrap;
+}
+
+.sur-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.sur-kpi > div {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  padding: 14px 16px;
+}
+
+.sur-kpi strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--vp-c-text-1);
+  font-size: 22px;
+}
+
+.sur-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.sur-flow > div {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  padding: 16px;
+}
+
+.sur-flow strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--vp-c-brand-1);
+}
+
+.sur-terminal {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  background: #080d10;
+  color: #d7e7dd;
+  padding: 18px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.7;
+}

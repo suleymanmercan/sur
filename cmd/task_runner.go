@@ -98,9 +98,13 @@ func runTaskSet(ctx context.Context, tasks []engine.RunnableTask, opts taskRunOp
 	if !opts.Resume {
 		var skipped []skippedTask
 		tasks, skipped = applicableTasks(ctx, tasks)
-		printSkippedTaskSummary(skipped)
+		if !jsonOutput {
+			printSkippedTaskSummary(skipped)
+		}
 		if len(tasks) == 0 {
-			fmt.Println("No applicable tasks to run. The supported tasks are already satisfied or not available on this OS.")
+			if !jsonOutput {
+				fmt.Println("No applicable tasks to run. The supported tasks are already satisfied or not available on this OS.")
+			}
 			return "", []engine.Result{}, nil
 		}
 	}

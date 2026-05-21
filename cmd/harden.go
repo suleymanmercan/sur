@@ -54,15 +54,14 @@ var hardenCmd = &cobra.Command{
 		if err != nil || results == nil {
 			return err
 		}
-		if len(results) == 0 {
-			return nil
-		}
-
 		if jsonOutput {
 			return emitJSON(map[string]any{
 				"session_id": sessionID,
 				"results":    results,
 			})
+		}
+		if len(results) == 0 {
+			return nil
 		}
 		printResults(sessionID, results)
 		return nil

@@ -50,7 +50,7 @@ Update an existing install:
 curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh | sudo bash -s -- --update
 ```
 
-The update flow downloads the latest release asset for the detected Linux architecture, verifies its `.sha256` checksum, and replaces `/usr/local/bin/sur`. It does not delete `/var/lib/sur` state.
+The update flow downloads the latest release archive for the detected OS/architecture, verifies it against `checksums.txt`, and replaces `/usr/local/bin/sur`. It does not delete `/var/lib/sur` state.
 
 Uninstall only the binary:
 

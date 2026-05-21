@@ -9,6 +9,17 @@ export default defineConfig({
 
   themeConfig: {
     siteTitle: 'sur',
+    outline: {
+      level: [2, 3],
+      label: 'Bu sayfada'
+    },
+    search: {
+      provider: 'local'
+    },
+    footer: {
+      message: 'Local-first Linux/VPS hardening assistant.',
+      copyright: 'Released under the MIT License.'
+    },
 
     nav: [
       { text: 'Ana Sayfa', link: '/' },

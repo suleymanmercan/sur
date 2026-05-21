@@ -300,6 +300,7 @@ func ellipsis(s string, max int) string {
 //	    results := runner.Apply(ctx, sessionID, tasks)
 //	    send(tui.AllDoneMsg{Results: results})
 //	})
+//
 // RunResult holds the outcome of RunProgress.
 type RunResult struct {
 	Results []engine.Result
