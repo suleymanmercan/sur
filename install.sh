@@ -134,20 +134,24 @@ download "$URL"           "$TMP_ARCHIVE"   "$ASSET"
 download "$CHECKSUM_URL"  "$TMP_CHECKSUMS" "checksums.txt"
 
 # verify checksum
-if command -v sha256sum >/dev/null 2>&1; then
-  info "verifying checksum..."
-  EXPECTED=$(grep "${ASSET}" "$TMP_CHECKSUMS" | awk '{print $1}')
-  if [ -z "$EXPECTED" ]; then
-    fail "checksum for ${ASSET} not found in checksums.txt"
-  fi
-  ACTUAL=$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')
-  if [ "$ACTUAL" != "$EXPECTED" ]; then
-    fail "checksum mismatch! expected=${EXPECTED} got=${ACTUAL}"
-  fi
-  ok "checksum verified"
-else
-  info "sha256sum not found, skipping checksum verification"
+info "verifying checksum..."
+EXPECTED=$(grep "${ASSET}" "$TMP_CHECKSUMS" | awk '{print $1}')
+if [ -z "$EXPECTED" ]; then
+  fail "checksum for ${ASSET} not found in checksums.txt"
 fi
+
+if command -v sha256sum >/dev/null 2>&1; then
+  ACTUAL=$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')
+elif command -v shasum >/dev/null 2>&1; then
+  ACTUAL=$(shasum -a 256 "$TMP_ARCHIVE" | awk '{print $1}')
+else
+  fail "sha256sum or shasum is required to verify checksums"
+fi
+
+if [ "$ACTUAL" != "$EXPECTED" ]; then
+  fail "checksum mismatch! expected=${EXPECTED} got=${ACTUAL}"
+fi
+ok "checksum verified"
 
 # extract binary from archive
 info "extracting..."

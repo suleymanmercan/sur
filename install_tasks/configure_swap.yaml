@@ -26,4 +26,3 @@ post_check:
 rollback:
   - command: "swapoff /swapfile 2>/dev/null || true"
   - command: "rm -f /swapfile"
-  - command: "cp {backup_path} /etc/fstab"

@@ -23,7 +23,6 @@ post_check:
   expect_exit: 0
 
 rollback:
-  - command: "cp {backup_path} /etc/ssh/sshd_config"
   - command: "systemctl reload ssh 2>/dev/null || systemctl reload sshd"
   - command: "if command -v ufw >/dev/null 2>&1 && ufw status | grep -q 'Status: active'; then ufw delete allow 2222/tcp; fi"
   - command: "if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then firewall-cmd --permanent --remove-port=2222/tcp && firewall-cmd --reload; fi"

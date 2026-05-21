@@ -4,6 +4,7 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/suleymanmercan/sur/internal/engine"
@@ -80,5 +81,23 @@ name: Custom Test Task
 	}
 	if !found {
 		t.Error("expected custom_test_task to be loaded from overrideDir")
+	}
+}
+
+func TestBuiltInTaskRollbacksDoNotCopyBackupPath(t *testing.T) {
+	for _, dir := range []string{"../tasks", "../install_tasks"} {
+		matches, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, path := range matches {
+			b, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(b), "cp {backup_path}") {
+				t.Fatalf("%s still copies {backup_path}; the runner restores backup data before rollback commands run", path)
+			}
+		}
 	}
 }

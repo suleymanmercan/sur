@@ -25,20 +25,18 @@ sur check
 
 ## İlk Sunucu Akışı
 
-Yeni bir VPS üzerinde aceleyle tüm task'ları çalıştırmak yerine şu sırayı kullan:
+Yeni bir VPS üzerinde önce durumu gör, sonra TUI içinde seçerek ilerle:
 
 ```bash
 sur check
-sudo sur harden --dry-run
 sudo sur harden
-sur history
+sudo sur install
 ```
 
-Server setup task'ları için:
+Emin değilsen uygulamadan önce preview alabilirsin:
 
 ```bash
-sudo sur install --dry-run
-sudo sur install
+sudo sur harden --dry-run
 ```
 
 ## Güncelleme
@@ -81,4 +79,4 @@ sudo make install
 | Binary PATH'te mi? | `command -v sur` |
 | Sürüm doğru mu? | `sur --version` |
 | Temel audit çalışıyor mu? | `sur check` |
-| State yazılabiliyor mu? | `sudo sur harden --dry-run --json` |
+| TUI açılıyor mu? | `sudo sur harden --dry-run` |

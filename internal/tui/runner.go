@@ -148,9 +148,13 @@ func (m runnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch v.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "q", "enter":
+		case "enter":
 			if m.finished {
 				m.goBack = true
+				return m, tea.Quit
+			}
+		case "q":
+			if m.finished {
 				return m, tea.Quit
 			}
 		}
@@ -216,7 +220,7 @@ func (m runnerModel) View() string {
 
 	// ── footer ────────────────────────────────────────────────────────────────
 	if m.finished {
-		b.WriteString("\n" + runnerTitle.Render("All tasks completed! Press Enter to run again • q to quit"))
+		b.WriteString("\n" + runnerTitle.Render("All tasks completed! Press Enter to return to task picker • q to quit"))
 	} else {
 		b.WriteString("\n" + runnerDim.Render("ctrl+c to abort"))
 	}
@@ -304,7 +308,7 @@ func ellipsis(s string, max int) string {
 // RunResult holds the outcome of RunProgress.
 type RunResult struct {
 	Results []engine.Result
-	GoBack  bool // true when the user pressed Enter/q after completion (wants to return to picker)
+	GoBack  bool // true when the user pressed Enter after completion (wants to return to picker)
 }
 
 func RunProgress(

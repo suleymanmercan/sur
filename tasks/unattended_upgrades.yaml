@@ -21,4 +21,4 @@ post_check:
   expect_exit: 0
 
 rollback:
-  - command: "cp {backup_path} /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null || rm -f /etc/apt/apt.conf.d/20auto-upgrades"
+  - command: "test -n \"{backup_path}\" || rm -f /etc/apt/apt.conf.d/20auto-upgrades"
