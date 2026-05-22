@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:${PORT}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${USERNAME}
+      POSTGRES_PASSWORD_FILE: /run/secrets/password
+    secrets:
+      - password
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+secrets:
+  password:
+    file: ./secrets/password.txt

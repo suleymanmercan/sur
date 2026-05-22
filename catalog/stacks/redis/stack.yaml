@@ -1,0 +1,23 @@
+id: redis
+name: Redis
+description: In-memory key-value store with AOF persistence
+risk_level: low
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: port
+    label: Port
+    type: number
+    default: "6379"
+
+  - id: password
+    label: Password
+    type: secret
+    generate: true

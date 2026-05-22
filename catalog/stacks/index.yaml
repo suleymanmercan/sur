@@ -1,0 +1,7 @@
+stacks:
+  - id: postgres
+    name: PostgreSQL
+    description: Local PostgreSQL database (v16)
+  - id: redis
+    name: Redis
+    description: In-memory key-value store (v7)

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/suleymanmercan/sur/internal/common"
+	"github.com/suleymanmercan/sur/internal/stack"
 )
 
 var sshdDropinGlob = "/etc/ssh/sshd_config.d/*.conf"
@@ -28,6 +29,7 @@ func All() []CheckFunc {
 		CheckUnattendedUpgrades,
 		CheckListeningPorts,
 		CheckSudoNoPasswd,
+		CheckStackHealth,
 	}
 }
 
@@ -434,4 +436,40 @@ func CheckSudoNoPasswd(ctx context.Context) []common.Finding {
 		Remediation: "Remove NOPASSWD unless strictly required by automation",
 		Source:      "builtin",
 	}}
+}
+
+// CheckStackHealth reports the running state of installed sur stacks.
+// All findings are INFO severity and do not affect the security score.
+func CheckStackHealth(_ context.Context) []common.Finding {
+	installed, err := stack.ListInstalled()
+	if err != nil || len(installed) == 0 {
+		return []common.Finding{{
+			ID:       "stacks.none",
+			Category: "Stacks",
+			Title:    "No stacks installed",
+			Status:   common.StatusSkip,
+			Severity: common.SeverityInfo,
+			Detail:   "Use 'sudo sur stack' to install a stack",
+			Source:   "builtin",
+		}}
+	}
+
+	var findings []common.Finding
+	for _, s := range installed {
+		status := common.StatusPass
+		detail := "running"
+		if !s.Running {
+			status = common.StatusWarn
+			detail = "stopped — use 'sudo sur stack' to start it"
+		}
+		findings = append(findings, common.Finding{
+			ID:       "stacks." + s.Def.ID,
+			Category: "Stacks",
+			Title:    s.Def.Name + ": " + detail,
+			Status:   status,
+			Severity: common.SeverityInfo,
+			Source:   "builtin",
+		})
+	}
+	return findings
 }

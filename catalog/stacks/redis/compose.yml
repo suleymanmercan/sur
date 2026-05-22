@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:${PORT}:6379"
+    command: >
+      redis-server
+      --requirepass "${PASSWORD}"
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
