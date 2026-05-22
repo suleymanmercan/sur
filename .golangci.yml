@@ -36,4 +36,7 @@ linters:
 
 formatters:
     enable:
-        - gofmt # gofmt artık formatter section'a taşındı
+        - gofmt
+    settings:
+        gofmt:
+            simplify: false

@@ -16,6 +16,11 @@ test:
 
 lint:
 	$(GO) vet ./...
+lint2:
+	golangci-lint fmt --diff ./...
+	golangci-lint run
+security:
+	govulncheck ./...
 
 run-check: build
 	./$(BINARY) check

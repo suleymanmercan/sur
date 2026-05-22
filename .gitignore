@@ -16,3 +16,6 @@ MARKET_ANALYSIS.md
 docs/node_modules
 docs/.vitepress/dist
 docs/.vitepress/cache
+*.md
+!README.md
+!docs/**/*.md

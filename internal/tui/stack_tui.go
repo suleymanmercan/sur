@@ -31,15 +31,15 @@ var (
 type stkScreen int
 
 const (
-	stkMainMenu    stkScreen = iota // top level
-	stkInstallList                  // choose a stack to install
-	stkConfigForm                   // fill in config fields
-	stkConfirmInstall               // confirm before running
-	stkRunInstall                   // show install progress
-	stkInstalledList                // choose an installed stack
-	stkActionMenu                   // choose action for installed stack
-	stkRunAction                    // show lifecycle action output
-	stkLogView                      // show recent logs
+	stkMainMenu       stkScreen = iota // top level
+	stkInstallList                     // choose a stack to install
+	stkConfigForm                      // fill in config fields
+	stkConfirmInstall                  // confirm before running
+	stkRunInstall                      // show install progress
+	stkInstalledList                   // choose an installed stack
+	stkActionMenu                      // choose action for installed stack
+	stkRunAction                       // show lifecycle action output
+	stkLogView                         // show recent logs
 )
 
 // mainMenuItem is one row in the top-level menu.
@@ -90,12 +90,12 @@ type StackModel struct {
 	loadErr       string // non-empty when catalog fetch failed
 
 	// config form
-	selectedDef    stack.StackDef
-	configValues   map[string]string // field.ID → entered value
-	configCursor   int               // which field is being edited
-	configEditing  bool              // user is typing in a field
-	configInput    string            // current input buffer
-	configErr      string
+	selectedDef   stack.StackDef
+	configValues  map[string]string // field.ID → entered value
+	configCursor  int               // which field is being edited
+	configEditing bool              // user is typing in a field
+	configInput   string            // current input buffer
+	configErr     string
 
 	// installed list
 	installedStacks []stack.InstalledStack
@@ -107,7 +107,6 @@ type StackModel struct {
 
 	// output / log view
 	outputLines []string
-	outputErr   string
 
 	// terminal size
 	width  int
@@ -601,7 +600,7 @@ func renderConfirmInstall(m StackModel) string {
 				display = stkSecret.Render("●●●●●●●●")
 			}
 		}
-		b.WriteString(fmt.Sprintf("  %-20s %s\n", f.Label+":", display))
+		fmt.Fprintf(&b, "  %-20s %s\n", f.Label+":", display)
 	}
 
 	b.WriteString("\n" + stkWarn.Render("Stack will be installed to /opt/sur/stacks/"+def.ID+"/") + "\n")
@@ -626,7 +625,7 @@ func renderInstalledList(m StackModel) string {
 		if s.Running {
 			status = stkOK.Render("running")
 		}
-		b.WriteString(fmt.Sprintf("%s%-20s %s\n", cursor, s.Def.Name, status))
+		fmt.Fprintf(&b, "%s%-20s %s\n", cursor, s.Def.Name, status)
 	}
 	b.WriteString("\n" + stkDim.Render("↑/↓ move • enter select • esc back"))
 	return b.String()

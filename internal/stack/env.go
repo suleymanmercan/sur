@@ -54,7 +54,7 @@ func WriteEnv(path string, env map[string]string, fields []ConfigField) error {
 		}
 		comment := fmt.Sprintf("# %s (%s)", f.Label, string(f.Type))
 		sb.WriteString(comment + "\n")
-		sb.WriteString(fmt.Sprintf("%s=%s\n\n", key, val))
+		fmt.Fprintf(&sb, "%s=%s\n\n", key, val)
 	}
 
 	return os.WriteFile(path, []byte(sb.String()), 0o600) // #nosec G306

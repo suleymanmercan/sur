@@ -124,4 +124,3 @@ func RunHook(luaPath, funcName, stackDir string, log func(string)) error {
 	}
 	return nil
 }
-
