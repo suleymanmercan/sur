@@ -37,6 +37,7 @@ var checkCmd = &cobra.Command{
 			report.Findings = append(report.Findings, lynisFindings...)
 			report = checker.BuildReport(report.Findings)
 		}
+		report = checker.ApplyRemediationHints(report, osInfo)
 
 		if jsonOutput {
 			return emitJSON(map[string]any{
@@ -96,6 +97,9 @@ func renderReport(osInfo *osdetect.OSInfo, r common.Report) {
 		if f.Status != common.StatusPass && f.Remediation != "" {
 			fmt.Println(dim.Render("         → " + f.Remediation))
 		}
+		if hint := remediationHint(f); hint != "" {
+			fmt.Println(dim.Render("         " + hint))
+		}
 	}
 	fmt.Println()
 
@@ -109,8 +113,52 @@ func renderReport(osInfo *osdetect.OSInfo, r common.Report) {
 	style := lipgloss.NewStyle().Bold(true).Foreground(scoreColor)
 	fmt.Println(style.Render(fmt.Sprintf("Score: %d/%d   Issues: %d", r.Score, r.MaxScore, r.Issues)))
 	if r.Issues > 0 {
-		fmt.Println(dim.Render("Run `sur harden` for supported automatic fixes; review remaining WARN items manually."))
+		autoFixes, manual := remediationCounts(r.Findings)
+		switch {
+		case autoFixes > 0 && manual > 0:
+			fmt.Println(dim.Render(fmt.Sprintf("%d finding(s) have task-backed auto-fixes; %d require manual review.", autoFixes, manual)))
+			fmt.Println(dim.Render("Use `sur harden --only <task_id>` for targeted automatic fixes."))
+		case autoFixes > 0:
+			fmt.Println(dim.Render(fmt.Sprintf("%d finding(s) have task-backed auto-fixes.", autoFixes)))
+			fmt.Println(dim.Render("Use `sur harden --only <task_id>` for targeted automatic fixes."))
+		default:
+			fmt.Println(dim.Render("Manual review required; no automatic hardening task is mapped for these findings."))
+		}
 	}
+}
+
+func remediationHint(f common.Finding) string {
+	switch f.RemediationMode {
+	case common.RemediationAutoFix:
+		if len(f.AutoFixTaskIDs) == 0 {
+			return ""
+		}
+		return fmt.Sprintf("auto-fix: sur harden --only %s", strings.Join(f.AutoFixTaskIDs, ","))
+	case common.RemediationManualReview:
+		if f.Status == common.StatusFail || f.Status == common.StatusWarn {
+			return "manual review required"
+		}
+	case common.RemediationInformational:
+		if f.Status == common.StatusSkip {
+			return "informational only"
+		}
+	}
+	return ""
+}
+
+func remediationCounts(findings []common.Finding) (autoFixes int, manual int) {
+	for _, f := range findings {
+		if f.Status != common.StatusFail && f.Status != common.StatusWarn {
+			continue
+		}
+		switch f.RemediationMode {
+		case common.RemediationAutoFix:
+			autoFixes++
+		case common.RemediationManualReview:
+			manual++
+		}
+	}
+	return autoFixes, manual
 }
 
 func statusIcon(s common.Status) string {
