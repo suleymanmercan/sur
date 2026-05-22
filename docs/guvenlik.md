@@ -50,6 +50,14 @@ sudo sur harden --only enable_ufw
 | `install_docker` | Paket repo ve service değişiklikleri yapar. |
 | `install_caddy` | Web server service ekler ve port kullanımını etkileyebilir. |
 
+## Stack Güvenliği
+
+`sur stack` komutu ile yönetilen ortamlar için şu güvenlik prensipleri geçerlidir:
+- **Varsayılan Local Bağlantı:** Servislerin host bağlantı noktası (`bind_host`) varsayılan olarak `127.0.0.1`'dir, böylece veri tabanları dışarıdan (public) erişime kapalı kalır. Açmak isterseniz TUI üzerinden `0.0.0.0` seçilmesi gerekir.
+- **Otomatik ve Güvenli Sırlar:** Şifreler (örn. `POSTGRES_PASSWORD`) boş bırakıldığında rastgele güvenli şekilde oluşturulur. Bu değerler `/opt/sur/stacks/<id>/secrets/` altına `0600` yetkisiyle kaydedilir; loglarda veya TUI ekranında asla düz metin olarak basılmaz.
+- **Sabit Sürümler:** Docker imajlarında asla `latest` kullanılmaz, majör sürümler (örn. `postgres:16`) sabitlenir.
+- **Silme Koruması:** Normal kullanımda `docker compose down -v` asla çalıştırılmaz, kalıcı veri dizinleri (`data/`, `secrets/`) her zaman güvendedir.
+
 ## Rollback Sınırları
 
 Rollback dosya değişikliklerinde güçlüdür; paket kurulumu, firewall state'i, servis enable/disable davranışı ve dış paket repository ekleme gibi işlemler her dağıtımda tam tersine çevrilemeyebilir.

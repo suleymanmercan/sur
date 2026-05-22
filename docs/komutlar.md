@@ -6,6 +6,7 @@
 sur check
 sudo sur harden
 sudo sur install
+sudo sur stack
 sur history
 ```
 
@@ -18,6 +19,7 @@ Root gerektiren değişikliklerde `sudo` kullanılır. Normal akışta task ID e
 | `sur check` | Sunucunun durumunu raporlar | Önce mevcut tabloyu görmek için |
 | `sudo sur harden` | Güvenlik task'larını TUI'da seçtirir | SSH, firewall, fail2ban gibi ayarları uygulamak için |
 | `sudo sur install` | Temel server setup task'larını TUI'da seçtirir | Yeni VPS hazırlarken |
+| `sudo sur stack` | Docker Compose ortamlarını yönetir | Postgres, Redis, monitoring kurarken |
 | `sur history` | Geçmiş oturumları listeler | Ne uygulandığını görmek için |
 | `sudo sur rollback <id>` | Desteklenen değişiklikleri geri alır | Bir session'ı toparlamak gerektiğinde |
 
@@ -40,8 +42,9 @@ sur check
 - Otomatik güvenlik güncellemeleri
 - Açık dinleyen soketler
 - sudoers `NOPASSWD` girişleri
+- Kurulu (installed) stack'lerin sağlık durumu
 
-Bu komut sistemde değişiklik yapmaz.
+Bu komut sistemde değişiklik yapmaz. Salt okunurdur.
 
 ## Güvenlik Task'ları
 
@@ -76,6 +79,16 @@ Emin değilsen önce preview çalıştırabilirsin:
 ```bash
 sudo sur install --dry-run
 ```
+
+## Stack Yönetimi
+
+```bash
+sudo sur stack
+```
+
+`sur stack`, TUI tabanlı bir Docker Compose ortam yöneticisidir. Hazır (official) katalog üzerinden PostgreSQL, Redis gibi servisleri kurabilir veya kendi özel stack'lerinizi oluşturabilirsiniz. Parola (secret) oluşturma ve `.env` düzenleme süreçlerini otomatikleştirir. 
+
+Daha fazla detay için [Stack Yönetimi](/stack-yonetimi) sayfasına bakabilirsiniz.
 
 ## Geçmiş ve Geri Alma
 

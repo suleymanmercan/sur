@@ -31,6 +31,7 @@ Yeni bir VPS üzerinde önce durumu gör, sonra TUI içinde seçerek ilerle:
 sur check
 sudo sur harden
 sudo sur install
+sudo sur stack
 ```
 
 Emin değilsen uygulamadan önce preview alabilirsin:

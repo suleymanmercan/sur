@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: "sur"
-  text: "Local-first VPS hardening ve server setup"
-  tagline: "Tek binary ile sunucuyu kontrol et, gerekli güvenlik ve kurulum task'larını TUI içinde seç, canlı ilerlemeyi izle."
+  text: "Local-first VPS hardening, server setup ve stack yönetimi"
+  tagline: "Tek binary ile sunucuyu kontrol et, gerekli güvenlik ve kurulum task'larını TUI içinde seç, Docker Compose stack'lerini yönet."
   actions:
     - theme: brand
       text: "Hemen Kur"
@@ -24,6 +24,8 @@ features:
     details: "Güvenlik task'larını TUI içinde seçtirir; uygulanacak adımlar canlı ekranda görünür."
   - title: "Sunucu Hazırla"
     details: "Swap, Docker, Caddy ve temel paketler gibi fresh-server kurulumlarını aynı seçilebilir akışa taşır."
+  - title: "Stack Yönetimi"
+    details: "PostgreSQL, Redis gibi hazır veya özel Docker Compose stack'lerini TUI üzerinden yapılandırır ve çalıştırır."
   - title: "Geriye Bak"
     details: "Session geçmişini ve desteklenen rollback bilgilerini SQLite state içinde saklar."
 ---
@@ -44,7 +46,8 @@ features:
   <div><strong>1. Kontrol</strong><span><code>sur check</code> ile SSH, firewall, fail2ban ve port durumunu gör.</span></div>
   <div><strong>2. Güvenlik</strong><span><code>sudo sur harden</code> ile uygulanacak güvenlik task'larını seç.</span></div>
   <div><strong>3. Kurulum</strong><span><code>sudo sur install</code> ile temel server setup task'larını seç.</span></div>
-  <div><strong>4. Geçmiş</strong><span><code>sur history</code> ile yapılan işleri kontrol et.</span></div>
+  <div><strong>4. Stack</strong><span><code>sudo sur stack</code> ile veritabanı veya monitoring araçlarını kur ve yönet.</span></div>
+  <div><strong>5. Geçmiş</strong><span><code>sur history</code> ile yapılan işleri kontrol et.</span></div>
 </div>
 
 ## Hızlı Örnek
@@ -54,6 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/suleymanmercan/sur/main/install.sh 
 sur check
 sudo sur harden
 sudo sur install
+sudo sur stack
 ```
 
 > [!IMPORTANT]
@@ -65,5 +69,6 @@ sudo sur install
 | --- | --- |
 | Kurulum, güncelleme, uninstall | [Kurulum](/kurulum) |
 | Günlük komut akışı | [Komutlar](/komutlar) |
+| Docker Compose tabanlı araçlar | [Stack Yönetimi](/stack-yonetimi) |
 | SSH/firewall değişikliklerinde güvenli akış | [Güvenlik Notları](/guvenlik) |
 | YAML veya Lua ile task yazma | [Task Sistemi](/task-sistemi) |

@@ -25,6 +25,7 @@ export default defineConfig({
       { text: 'Ana Sayfa', link: '/' },
       { text: 'Kurulum', link: '/kurulum' },
       { text: 'Komutlar', link: '/komutlar' },
+      { text: 'Stack Yönetimi', link: '/stack-yonetimi' },
       {
         text: 'Task Yazma',
         items: [
@@ -42,6 +43,7 @@ export default defineConfig({
         items: [
           { text: 'Kurulum', link: '/kurulum' },
           { text: 'Komutlar', link: '/komutlar' },
+          { text: 'Stack Yönetimi', link: '/stack-yonetimi' },
           { text: 'Güvenlik Notları', link: '/guvenlik' },
           { text: 'Proje Durumu', link: '/durum' }
         ]

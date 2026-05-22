@@ -8,7 +8,8 @@ Geliştiriciler ve DevOps ekipleri için karmaşık güvenlik süreçlerini hafi
 
 | Alan | Durum |
 | --- | --- |
-| Core CLI | Kullanılabilir: `check`, `harden`, `install`, `history`, `rollback` |
+| Core CLI | Kullanılabilir: `check`, `harden`, `install`, `stack`, `history`, `rollback` |
+| Stack Yönetimi | Kullanılabilir: Dinamik GitHub katalogu, TUI üzerinden `.env` yapılandırması ve Lifecycle eylemleri aktif. |
 | Release | GitHub Release + GoReleaser archive + `checksums.txt` akışı var |
 | Dokümantasyon | VitePress site ile yayınlanıyor |
 | Task sistemi | Embedded YAML/Lua + `/etc/sur/*` + local override destekli |
@@ -20,9 +21,10 @@ Geliştiriciler ve DevOps ekipleri için karmaşık güvenlik süreçlerini hafi
 - **Tekil Binary Mimari:** Harici kütüphane veya dil çalışma ortamı gerektirmeden hızlıca kurulur ve çalıştırılır.
 - **Yerel Öncelikli (Local-First):** Merkezi bir sunucuya ihtiyaç duymadan, tüm işlemlerinizi doğrudan hedef host üzerinde yürütür.
 - **Etkileşimli TUI (Terminal User Interface):** Güvenlik adımlarını ve kurulacak bileşenleri kolayca seçebileceğiniz görsel arayüz sunar.
+- **Stack Yöneticisi:** Docker Compose ortamlarını, parolaları gizleyerek ve güvenli .env dosyaları üreterek TUI içerisinden yönetir.
 - **İşletim Sistemi ve Pre-check Akıllı Filtreleme:** Sistem durumunu ve dağıtım türünü algılayarak yalnızca ilgili ve gerekli task'ları gösterir.
 - **SQLite Oturum ve Geçmiş Yönetimi:** Tüm oturumları, uygulanan task durumlarını ve rollback verilerini yerel bir SQLite veritabanında kaydeder.
-- **Çok Yönlü Komut Seti:** `check`, `harden`, `install`, `rollback` ve `history` komutları ile uçtan uca yönetim sağlar.
+- **Çok Yönlü Komut Seti:** `check`, `harden`, `install`, `stack`, `rollback` ve `history` komutları ile uçtan uca yönetim sağlar.
 - **Hibrit Task Yönetimi (Truly Hybrid Loading):** Gömülü (embedded) task'lar ile yerel/sistem dizinlerindeki (`/etc/sur/tasks`) özel kuralları pürüzsüzce birleştirir ve override desteği sunar.
 - **Lua Script Desteği:** Statik YAML dosyalarının yetersiz kaldığı karmaşık akışlar için güçlü ve dinamik Lua betikleri yazma imkanı tanır.
 
