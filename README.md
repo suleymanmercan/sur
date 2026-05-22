@@ -2,39 +2,20 @@
 
 `sur` is a local-first Linux/VPS hardening and setup assistant.
 
-It audits a server, shows risky defaults, lets you choose supported fixes in a TUI, applies selected tasks locally, records the session in SQLite, and supports rollback where a task can safely be reversed.
+It audits a server, shows risky defaults, lets you choose fixes in a TUI, applies selected tasks directly on the host, records sessions in SQLite, and supports rollback where possible. It also manages Docker Compose based development stacks through the `sur stack` command.
 
-The project is a developer-centric, local-first Linux/VPS hardening and system initialization assistant.
-
-documentation live on: https://suleymanmercan.github.io/sur/
+Documentation: https://suleymanmercan.github.io/sur/
 
 ## What It Does
 
-- Runs local security checks with `sur check`.
-- Finds common VPS risks:
-  - SSH root login
-  - SSH password authentication
-  - default SSH port
-  - inactive or missing firewall
-  - missing or inactive fail2ban
-  - missing automatic security updates
-  - listening sockets
-  - sudoers `NOPASSWD` entries
+- Audits the host with `sur check` — SSH, firewall, fail2ban, auto-updates, sudoers, listening ports, and installed stack health.
 - Opens an interactive hardening picker with `sur harden`.
 - Opens an interactive server setup picker with `sur install`.
-- Filters tasks before showing them:
-  - unsupported OS tasks are hidden
-  - already-satisfied tasks are hidden
-  - only applicable tasks are shown
+- Manages Docker Compose stacks (databases, services, monitoring) with `sur stack`.
+- Filters tasks before showing them — unsupported OS and already-satisfied tasks are hidden.
 - Runs selected task commands directly on the host.
 - Stores sessions, task status, rollback data, and history in SQLite.
 - Installs as a single static Go binary.
-
-## Design Philosophy & Focus
-
-`sur` is designed to be lightweight, zero-dependency, and extremely fast.
-
-Unlike agent-heavy or complex fleet-management platforms, `sur` focuses on a developer-friendly, local-first workflow for individuals and teams looking to quickly configure and secure Linux servers.
 
 ## Install
 
@@ -75,7 +56,7 @@ sudo install -m 0755 sur /usr/local/bin/sur
 
 ## Quick Start
 
-Run a basic audit:
+Run a security audit:
 
 ```bash
 sur check
@@ -87,28 +68,10 @@ Run a deeper audit with Lynis:
 sur check --deep
 ```
 
-Install Lynis automatically when missing:
-
-```bash
-sudo sur check --deep --install-lynis
-```
-
-Preview hardening actions:
-
-```bash
-sudo sur harden --dry-run
-```
-
 Open the interactive hardening TUI:
 
 ```bash
 sudo sur harden
-```
-
-Run selected hardening tasks only:
-
-```bash
-sudo sur harden --only enable_ufw,install_fail2ban
 ```
 
 Open the interactive install/setup TUI:
@@ -117,10 +80,10 @@ Open the interactive install/setup TUI:
 sudo sur install
 ```
 
-Run selected install tasks only:
+Open the interactive stack manager:
 
 ```bash
-sudo sur install --only configure_swap,install_docker,install_caddy
+sudo sur stack
 ```
 
 View previous sessions:
@@ -145,7 +108,6 @@ sudo sur rollback <session-id>
 | `sur harden`                       | Select and apply hardening tasks interactively.                        |
 | `sur harden --dry-run`             | Show selected hardening actions without changing the host.             |
 | `sur harden --yes`                 | Apply all applicable hardening tasks without the TUI.                  |
-| `sur harden --all`                 | Apply all applicable hardening tasks without prompting.                |
 | `sur harden --only <ids>`          | Apply only comma-separated hardening task IDs.                         |
 | `sur harden --resume`              | Resume the latest unfinished session.                                  |
 | `sur harden --tasks <dir>`         | Load hardening tasks from a custom directory.                          |
@@ -153,13 +115,132 @@ sudo sur rollback <session-id>
 | `sur install`                      | Select and apply server setup tasks interactively.                     |
 | `sur install --dry-run`            | Show selected install actions without changing the host.               |
 | `sur install --yes`                | Apply all applicable install tasks without the TUI.                    |
-| `sur install --all`                | Apply all applicable install tasks without prompting.                  |
 | `sur install --only <ids>`         | Apply only comma-separated install task IDs.                           |
 | `sur install --tasks <dir>`        | Load install tasks from a custom directory.                            |
 | `sur install --state <path>`       | Use a custom SQLite state database.                                    |
+| `sur stack`                        | Open the interactive Docker Compose stack manager.                     |
 | `sur rollback <session-id>`        | Roll back a session in reverse task order where rollback is supported. |
 | `sur history`                      | List previous sessions.                                                |
 | `--json`                           | Emit machine-readable JSON for supported commands.                     |
+
+## Stack Manager
+
+`sur stack` provides an interactive TUI to install and manage Docker Compose based development and monitoring stacks.
+
+```bash
+sudo sur stack
+```
+
+### How It Works
+
+The stack catalog is fetched at runtime from GitHub:
+
+```
+https://raw.githubusercontent.com/suleymanmercan/sur/main/catalog/stacks/
+```
+
+Templates are cached under `/var/cache/sur/catalog/` with a 24-hour TTL. The "Fetch / update catalog" menu item forces a refresh.
+
+Installed stacks live under `/opt/sur/stacks/<stack-id>/`.
+
+### Official Stacks
+
+| Stack      | Image        | Description                          |
+| ---------- | ------------ | ------------------------------------ |
+| PostgreSQL | `postgres:16` | Local PostgreSQL database            |
+| Redis      | `redis:7`     | In-memory key-value store with AOF   |
+
+### User Custom Stacks
+
+Place a valid stack directory under `/etc/sur/stacks/<stack-id>/`:
+
+```text
+/etc/sur/stacks/my-app/
+  stack.yaml
+  compose.yml
+  stack.lua     (optional)
+```
+
+Custom stacks appear in the TUI with a `[custom]` label and are never overwritten by catalog updates.
+
+### Stack Lifecycle Actions
+
+From the TUI, each installed stack supports:
+
+| Action        | Description                                          |
+| ------------- | ---------------------------------------------------- |
+| Status        | Show container states.                               |
+| Logs          | Display the last 80 lines of compose logs.           |
+| Edit config   | Update `.env` values via the TUI form.               |
+| Restart       | `docker compose restart`.                            |
+| Backup        | Copy `data/` and `secrets/` to `backups/<timestamp>` |
+| Update        | Pull latest images and restart.                      |
+| Stop (down)   | `docker compose down` (data is preserved).           |
+
+### Safety Guarantees
+
+- Default bind host is always `127.0.0.1` — public binding requires explicit selection.
+- Image tags are pinned (`postgres:16`, `redis:7`) — `latest` is never used.
+- `docker compose down -v` is never run from normal flows.
+- `data/`, `secrets/`, and `backups/` directories are never deleted automatically.
+- Compose config is validated with `docker compose config` before every `up`.
+
+### stack.yaml Format
+
+```yaml
+id: mystack
+name: My Stack
+description: A custom stack
+risk_level: low
+
+config:
+  - id: port
+    label: Port
+    type: number
+    default: "8080"
+
+  - id: password
+    label: Password
+    type: secret
+    generate: true
+```
+
+Config field types: `text`, `number`, `select`, `bool`, `secret`.
+
+Secret fields are written to `secrets/<id>.txt` with mode `0600` and are never printed in logs or the TUI.
+
+### stack.lua Hooks
+
+Each stack can optionally provide lifecycle hooks in `stack.lua`:
+
+```lua
+function install(ctx)
+  ctx.log("Custom install step.")
+end
+
+function update(ctx)  end
+function backup(ctx)  end
+function status(ctx)  end
+```
+
+`ctx.dir` contains the installed stack directory. `ctx.log(msg)` writes a log line.
+
+## Built-In Security Checks (`sur check`)
+
+| Check ID             | Category    | What It Checks                              |
+| -------------------- | ----------- | ------------------------------------------- |
+| `ssh.root_login`     | SSH         | `PermitRootLogin` is disabled               |
+| `ssh.password_auth`  | SSH         | `PasswordAuthentication` is off             |
+| `ssh.port`           | SSH         | SSH is not on default port 22               |
+| `firewall.ufw`       | Firewall    | UFW is active                               |
+| `firewall.firewalld` | Firewall    | firewalld is active                         |
+| `fail2ban.active`    | Brute-force | fail2ban is installed and running           |
+| `updates.auto`       | Updates     | Automatic security updates are configured   |
+| `ports.listening`    | Network     | Listening socket count                      |
+| `sudo.nopasswd`      | Sudo        | No `NOPASSWD` entries in sudoers            |
+| `stacks.*`           | Stacks      | Running state of installed sur stacks (INFO)|
+
+`sur check` is read-only and never modifies the system.
 
 ## Built-In Hardening Tasks
 
@@ -173,34 +254,24 @@ sudo sur rollback <session-id>
 
 ## Built-In Install Tasks
 
-| Task ID          | What it does                                                                          | Risk   | Rollback |
-| ---------------- | ------------------------------------------------------------------------------------- | ------ | -------- |
+| Task ID          | What it does                                                                           | Risk   | Rollback |
+| ---------------- | -------------------------------------------------------------------------------------- | ------ | -------- |
 | `server_basics`  | Installs common CLI packages such as curl, git, unzip, jq, htop, and CA certificates. | low    | no       |
-| `configure_swap` | Creates `/swapfile`, enables it, and persists it in `/etc/fstab`.                     | medium | yes      |
-| `install_docker` | Installs Docker Engine and the Compose plugin from Docker's package repository.       | medium | no       |
-| `install_caddy`  | Installs and enables the Caddy web server.                                            | low    | no       |
+| `configure_swap` | Creates `/swapfile`, enables it, and persists it in `/etc/fstab`.                      | medium | yes      |
+| `install_docker` | Installs Docker Engine and the Compose plugin from Docker's package repository.        | medium | no       |
+| `install_caddy`  | Installs and enables the Caddy web server.                                             | low    | no       |
 
-Swap size defaults to `2G`. Override it with:
+Swap size defaults to `2G`. Override with:
 
 ```bash
 sudo SUR_SWAP_SIZE=4G sur install --only configure_swap
 ```
 
-or:
-
-```bash
-sudo SUR_SWAP_MB=4096 sur install --only configure_swap
-```
-
 ## Task System
 
-Hardening tasks live under `tasks/`.
+Hardening tasks live under `tasks/`. Install/setup tasks live under `install_tasks/`. Both directories are embedded into the Go binary with `go:embed`.
 
-Install/setup tasks live under `install_tasks/`.
-
-Both directories are embedded into the Go binary with `go:embed`. `sur` does not call Ansible. It loads YAML task definitions and runs selected task steps directly on the local host with `sh -c`.
-
-Each task follows this lifecycle:
+Each task lifecycle:
 
 ```text
 load task
@@ -243,12 +314,6 @@ Override it with:
 sudo sur harden --state ./sur.db
 ```
 
-or:
-
-```bash
-SUR_DB=./sur.db sudo -E sur harden
-```
-
 Rollback is task-dependent. Config-file tasks can usually be rolled back because `sur` stores backup data. Package installs and firewall changes may require manual recovery and are marked accordingly.
 
 ## Safety Notes
@@ -257,12 +322,10 @@ Rollback is task-dependent. Config-file tasks can usually be rolled back because
 - Always run `sur harden --dry-run` on important servers.
 - Keep an active SSH session open before changing SSH or firewall settings.
 - Review high-risk tasks such as `enable_ufw` before applying them remotely.
-- Do not treat the score as a compliance certificate.
-- Manual-review findings, such as many listening ports, should not be blindly auto-fixed.
+- Do not treat the security score as a compliance certificate.
+- Manual-review findings should not be blindly auto-fixed.
 
 ## Supported Systems
-
-The code detects these Linux families:
 
 | Distribution | Family | Package manager |
 | ------------ | ------ | --------------- |
@@ -273,7 +336,7 @@ The code detects these Linux families:
 | Fedora       | Fedora | `dnf`           |
 | openSUSE     | SUSE   | `zypper`        |
 
-Note on Distro Support: Debian and Ubuntu paths are the primary development targets. Support for RHEL, Fedora, and openSUSE exists in system detection and selected tasks, with ongoing testing to expand compatibility across all distributions.
+Debian and Ubuntu are the primary development targets. RHEL/Fedora/openSUSE support exists for system detection and selected tasks.
 
 ## Development
 
@@ -289,7 +352,7 @@ Test:
 make test
 ```
 
-Run `go vet`:
+Lint:
 
 ```bash
 make lint
@@ -315,19 +378,10 @@ sudo make purge
 
 ## Documentation
 
-The lightweight documentation site lives under `docs/`.
+The documentation site lives under `docs/`:
 
 ```bash
 cd docs
 npm install
 npm run docs:dev
 ```
-
-## Project Roadmap & Status
-
-`sur` is actively developed and feature-complete for core use cases. The primary roadmap items include:
-
-- Automating the cross-distro VM test matrix.
-- Enhancing the TUI results screen.
-- Tighter mapping from `sur check` findings directly to hardening tasks.
-- Further hardening of critical configuration tasks.
