@@ -1,0 +1,29 @@
+id: adminer
+name: Adminer
+description: Lightweight database web UI — supports PostgreSQL, MySQL, SQLite, MongoDB
+risk_level: low
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: port
+    label: Port
+    type: number
+    default: "8080"
+
+  - id: design
+    label: UI theme
+    type: select
+    default: "pepa-linha-dark"
+    options:
+      - "pepa-linha-dark"
+      - "pepa-linha"
+      - "dracula"
+      - "flat"
+      - "nette"

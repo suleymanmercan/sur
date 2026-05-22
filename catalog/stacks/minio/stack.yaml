@@ -1,0 +1,33 @@
+id: minio
+name: MinIO
+description: S3-compatible object storage for local development
+risk_level: medium
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: api_port
+    label: API port
+    type: number
+    default: "9000"
+
+  - id: console_port
+    label: Console UI port
+    type: number
+    default: "9001"
+
+  - id: root_user
+    label: Root username
+    type: text
+    default: minioadmin
+
+  - id: root_password
+    label: Root password
+    type: secret
+    generate: true

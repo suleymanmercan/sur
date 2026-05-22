@@ -1,0 +1,23 @@
+id: mailpit
+name: Mailpit
+description: Local SMTP server + web UI — catches all outgoing dev emails
+risk_level: low
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: smtp_port
+    label: SMTP port
+    type: number
+    default: "1025"
+
+  - id: ui_port
+    label: Web UI port
+    type: number
+    default: "8025"

@@ -1,0 +1,24 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:${PORT}:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD_FILE=/run/secrets/password
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    secrets:
+      - password
+    volumes:
+      - ./data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:$(cat /run/secrets/password) http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+secrets:
+  password:
+    file: ./secrets/password.txt

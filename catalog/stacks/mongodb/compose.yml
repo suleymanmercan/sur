@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:${PORT}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/password
+      MONGO_INITDB_DATABASE: ${DB_NAME}
+    secrets:
+      - password
+    volumes:
+      - ./data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+secrets:
+  password:
+    file: ./secrets/password.txt

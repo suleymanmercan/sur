@@ -59,6 +59,59 @@ func Restart(dir string, log func(string)) error {
 	return composeRun(dir, log, "restart")
 }
 
+// Rotate generates a new random password, writes it to secrets/, then calls
+// the stack's rotate Lua hook (which updates the DB user), and restarts.
+func Rotate(dir string, log func(string)) error {
+	log("Generating new password...")
+	newPass, err := generateSecret(24)
+	if err != nil {
+		return fmt.Errorf("generate secret: %w", err)
+	}
+
+	// Find all .txt files under secrets/ and rotate the first non-root one.
+	// Stacks with a rotate hook take full control via Lua.
+	secretsDir := filepath.Join(dir, "secrets")
+	entries, err := os.ReadDir(secretsDir)
+	if err != nil {
+		return fmt.Errorf("read secrets dir: %w", err)
+	}
+
+	rotated := false
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".txt" {
+			continue
+		}
+		// Skip root_password — that requires extra steps.
+		if e.Name() == "root_password.txt" {
+			continue
+		}
+		p := filepath.Join(secretsDir, e.Name())
+		log(fmt.Sprintf("Writing new secret → %s", p))
+		if werr := os.WriteFile(p, []byte(newPass), 0o600); werr != nil { // #nosec G306
+			return fmt.Errorf("write secret: %w", werr)
+		}
+		rotated = true
+		break
+	}
+	if !rotated {
+		return fmt.Errorf("no rotatable secret found in %s", secretsDir)
+	}
+
+	// Run the stack's rotate Lua hook (applies the change inside the DB).
+	luaPath := filepath.Join(dir, "stack.lua")
+	if fileExists(luaPath) {
+		log("Running rotate hook (stack.lua)...")
+		if herr := RunHook(luaPath, "rotate", dir, log); herr != nil {
+			return fmt.Errorf("rotate hook: %w", herr)
+		}
+	} else {
+		log("No stack.lua rotate hook found — restarting to pick up new secret.")
+	}
+
+	log("Restarting stack to apply new credentials...")
+	return composeRun(dir, log, "up", "-d", "--force-recreate")
+}
+
 // Down stops and removes containers (but NOT volumes or data).
 func Down(dir string, log func(string)) error {
 	log("Stopping stack (docker compose down)...")
@@ -85,7 +138,7 @@ func Backup(dir string, log func(string)) error {
 	dst := filepath.Join(dir, "backups", ts)
 	log(fmt.Sprintf("Creating backup in %s", dst))
 
-	if err := os.MkdirAll(dst, 0o750); err != nil {
+	if err := os.MkdirAll(dst, 0o755); err != nil {
 		return fmt.Errorf("mkdir backup: %w", err)
 	}
 

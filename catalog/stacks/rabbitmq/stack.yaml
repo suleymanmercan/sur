@@ -1,0 +1,33 @@
+id: rabbitmq
+name: RabbitMQ
+description: RabbitMQ message broker with management UI
+risk_level: medium
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: amqp_port
+    label: AMQP port
+    type: number
+    default: "5672"
+
+  - id: mgmt_port
+    label: Management UI port
+    type: number
+    default: "15672"
+
+  - id: username
+    label: Username
+    type: text
+    default: app
+
+  - id: password
+    label: Password
+    type: secret
+    generate: true

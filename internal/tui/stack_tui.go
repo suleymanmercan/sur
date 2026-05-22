@@ -65,6 +65,7 @@ var actionItems = []actionItem{
 	{"Logs", "logs"},
 	{"Edit config", "edit"},
 	{"Restart", "restart"},
+	{"Rotate password", "rotate"},
 	{"Backup", "backup"},
 	{"Update (pull + restart)", "update"},
 	{"Stop (down)", "down"},
@@ -76,6 +77,9 @@ var actionItems = []actionItem{
 // StackModel is the Bubble Tea model for the full stack management TUI.
 type StackModel struct {
 	screen stkScreen
+
+	// program reference — used to send streaming log messages from goroutines.
+	prog *tea.Program
 
 	// main menu
 	mainCursor int
@@ -367,7 +371,7 @@ func (m StackModel) handleConfirmInstall(key string) (tea.Model, tea.Cmd) {
 	case "enter", "y":
 		m.outputLines = nil
 		m.screen = stkRunInstall
-		return m, doInstall(m.selectedDef, m.configValues)
+		return m, doInstall(m.prog, m.selectedDef, m.configValues)
 	case "n":
 		m.screen = stkConfigForm
 	}
@@ -424,7 +428,7 @@ func (m StackModel) handleActionMenu(key string) (tea.Model, tea.Cmd) {
 		default:
 			m.outputLines = nil
 			m.screen = stkRunAction
-			return m, doAction(m.actionTarget, item.key)
+			return m, doAction(m.prog, m.actionTarget, item.key)
 		}
 	}
 	return m, nil
@@ -736,48 +740,64 @@ func refreshCatalog() tea.Cmd {
 	}
 }
 
-func doInstall(def stack.StackDef, values map[string]string) tea.Cmd {
+// doInstall runs the stack installation in a goroutine and streams each log
+// line into the TUI via prog.Send so the user can see live progress.
+func doInstall(prog *tea.Program, def stack.StackDef, values map[string]string) tea.Cmd {
 	return func() tea.Msg {
-		err := stack.Install(def, values, func(line string) {
-			// We can't send per-line messages from a blocking Cmd.
-			// Log is collected and displayed when done.
-			_ = line
-		})
-		if err != nil {
-			return actionDoneMsg{err: err.Error()}
-		}
-		return actionDoneMsg{}
+		go func() {
+			err := stack.Install(def, values, func(line string) {
+				prog.Send(outputMsg{line: line})
+			})
+			if err != nil {
+				prog.Send(actionDoneMsg{err: err.Error()})
+			} else {
+				prog.Send(actionDoneMsg{})
+			}
+		}()
+		// Return nil immediately; all updates come via prog.Send from the goroutine.
+		return nil
 	}
 }
 
-func doAction(s stack.InstalledStack, action string) tea.Cmd {
+// doAction runs a lifecycle action in a goroutine and streams log lines live.
+func doAction(prog *tea.Program, s stack.InstalledStack, action string) tea.Cmd {
 	return func() tea.Msg {
-		var err error
-		log := func(_ string) {}
-		switch action {
-		case "restart":
-			err = stack.Restart(s.Dir, log)
-		case "down":
-			err = stack.Down(s.Dir, log)
-		case "update":
-			err = stack.Update(s.Dir, log)
-		case "backup":
-			err = stack.Backup(s.Dir, log)
-		case "status":
-			rows, serr := stack.Status(s.Dir)
-			if serr != nil {
-				return actionDoneMsg{err: serr.Error()}
+		go func() {
+			logFn := func(line string) {
+				prog.Send(outputMsg{line: line})
 			}
-			var lines []string
-			for _, r := range rows {
-				lines = append(lines, fmt.Sprintf("  %-30s %s", r.Name, r.State))
+			var err error
+			switch action {
+			case "restart":
+				err = stack.Restart(s.Dir, logFn)
+			case "rotate":
+				err = stack.Rotate(s.Dir, logFn)
+			case "down":
+				err = stack.Down(s.Dir, logFn)
+			case "update":
+				err = stack.Update(s.Dir, logFn)
+			case "backup":
+				err = stack.Backup(s.Dir, logFn)
+			case "status":
+				rows, serr := stack.Status(s.Dir)
+				if serr != nil {
+					prog.Send(actionDoneMsg{err: serr.Error()})
+					return
+				}
+				var lines []string
+				for _, r := range rows {
+					lines = append(lines, fmt.Sprintf("  %-30s %s", r.Name, r.State))
+				}
+				prog.Send(logLoadedMsg{lines: lines})
+				return
 			}
-			return logLoadedMsg{lines: lines}
-		}
-		if err != nil {
-			return actionDoneMsg{err: err.Error()}
-		}
-		return actionDoneMsg{}
+			if err != nil {
+				prog.Send(actionDoneMsg{err: err.Error()})
+			} else {
+				prog.Send(actionDoneMsg{})
+			}
+		}()
+		return nil
 	}
 }
 
@@ -798,6 +818,8 @@ func loadLogs(dir string) tea.Cmd {
 func RunStack() error {
 	m := NewStackModel()
 	p := tea.NewProgram(m, tea.WithAltScreen())
+	// Store the program reference in the model so commands can stream messages.
+	m.prog = p
 	_, err := p.Run()
 	return err
 }

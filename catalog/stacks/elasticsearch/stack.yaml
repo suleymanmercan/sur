@@ -1,0 +1,23 @@
+id: elasticsearch
+name: Elasticsearch
+description: Elasticsearch 8 search & analytics engine (single-node dev)
+risk_level: medium
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: port
+    label: HTTP port
+    type: number
+    default: "9200"
+
+  - id: password
+    label: elastic user password
+    type: secret
+    generate: true

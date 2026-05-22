@@ -1,0 +1,33 @@
+id: mongodb
+name: MongoDB
+description: MongoDB 7 document database with optional auth
+risk_level: medium
+
+config:
+  - id: bind_host
+    label: Bind host
+    type: select
+    default: "127.0.0.1"
+    options:
+      - "127.0.0.1"
+      - "0.0.0.0"
+
+  - id: port
+    label: Port
+    type: number
+    default: "27017"
+
+  - id: db_name
+    label: Database name
+    type: text
+    default: app
+
+  - id: username
+    label: Username
+    type: text
+    default: app
+
+  - id: password
+    label: Password
+    type: secret
+    generate: true

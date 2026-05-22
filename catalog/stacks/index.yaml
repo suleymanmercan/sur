@@ -2,6 +2,27 @@ stacks:
   - id: postgres
     name: PostgreSQL
     description: Local PostgreSQL database (v16)
+  - id: mysql
+    name: MySQL
+    description: MySQL 8 relational database
+  - id: mongodb
+    name: MongoDB
+    description: MongoDB 7 document database
   - id: redis
     name: Redis
     description: In-memory key-value store (v7)
+  - id: rabbitmq
+    name: RabbitMQ
+    description: Message broker with management UI
+  - id: elasticsearch
+    name: Elasticsearch
+    description: Search & analytics engine (v8, single-node dev)
+  - id: minio
+    name: MinIO
+    description: S3-compatible local object storage
+  - id: mailpit
+    name: Mailpit
+    description: Local SMTP trap + web UI for dev emails
+  - id: adminer
+    name: Adminer
+    description: Web UI for PostgreSQL, MySQL, MongoDB

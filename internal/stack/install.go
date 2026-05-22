@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"os/user"
 	"path/filepath"
 )
 
@@ -18,12 +20,24 @@ func Install(def StackDef, values map[string]string, log func(string)) error {
 	dir := InstalledDirFor(def.ID)
 
 	log(fmt.Sprintf("Creating directory %s", dir))
-	for _, sub := range []string{"", "secrets", "data", "backups"} {
+	// Directory permission plan:
+	//   stack root, data, backups → 0755 (user can cd/ls without sudo)
+	//   secrets                   → 0700 (root-only; contains passwords)
+	subPerms := map[string]os.FileMode{
+		"":        0o755,
+		"data":    0o755,
+		"backups": 0o755,
+		"secrets": 0o700,
+	}
+	for sub, perm := range subPerms {
 		p := filepath.Join(dir, sub)
-		if err := os.MkdirAll(p, 0o750); err != nil {
+		if err := os.MkdirAll(p, perm); err != nil {
 			return fmt.Errorf("mkdir %s: %w", p, err)
 		}
 	}
+	// Chown the stack dir (except secrets) to the real invoking user so they
+	// can manage their own stacks without sudo.
+	chownToRealUser(dir, log)
 
 	// --- copy template files ---
 	filesToCopy := []string{"stack.yaml", "compose.yml"}
@@ -128,6 +142,32 @@ func Install(def StackDef, values map[string]string, log func(string)) error {
 
 	log(fmt.Sprintf("Stack '%s' installed and started successfully.", def.Name))
 	return nil
+}
+
+// chownToRealUser changes ownership of the stack directory tree (except the
+// secrets sub-dir) to the user who invoked sudo, so they can browse and edit
+// their own stacks without needing sudo for every ls/cat/vim.
+func chownToRealUser(dir string, log func(string)) {
+	username := os.Getenv("SUDO_USER")
+	if username == "" {
+		// Not running under sudo; nothing to fix.
+		return
+	}
+	u, err := user.Lookup(username)
+	if err != nil {
+		log(fmt.Sprintf("Warning: could not look up user %q: %v", username, err))
+		return
+	}
+	// Chown the stack root, data, and backups dirs to the real user.
+	// secrets/ intentionally stays root-owned (0700).
+	for _, sub := range []string{"", "data", "backups"} {
+		p := filepath.Join(dir, sub)
+		cmd := exec.Command("chown", u.Uid+":"+u.Gid, p) // #nosec G204
+		if out, cerr := cmd.CombinedOutput(); cerr != nil {
+			log(fmt.Sprintf("Warning: chown %s: %v %s", p, cerr, string(out)))
+		}
+	}
+	log(fmt.Sprintf("Ownership of %s set to %s", dir, username))
 }
 
 // generateSecret returns a URL-safe random string of approx byteLen*4/3 characters.

@@ -1,0 +1,23 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:${AMQP_PORT}:5672"
+      - "${BIND_HOST}:${MGMT_PORT}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${USERNAME}
+      RABBITMQ_DEFAULT_PASS_FILE: /run/secrets/password
+    secrets:
+      - password
+    volumes:
+      - ./data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+secrets:
+  password:
+    file: ./secrets/password.txt
