@@ -21,7 +21,8 @@ lint2:
 	golangci-lint run
 security:
 	govulncheck ./...
-
+secure:
+	gosec -exclude-dir=vendor ./...
 run-check: build
 	./$(BINARY) check
 

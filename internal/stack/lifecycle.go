@@ -138,7 +138,7 @@ func Backup(dir string, log func(string)) error {
 	dst := filepath.Join(dir, "backups", ts)
 	log(fmt.Sprintf("Creating backup in %s", dst))
 
-	if err := os.MkdirAll(dst, 0o755); err != nil {
+	if err := os.MkdirAll(dst, 0o750); err != nil {
 		return fmt.Errorf("mkdir backup: %w", err)
 	}
 

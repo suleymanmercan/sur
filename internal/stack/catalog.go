@@ -233,7 +233,7 @@ func writeCached(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o640) // #nosec G306 — catalog cache files are not sensitive
+	return os.WriteFile(path, data, 0o640) // #nosec G703 G306  — catalog cache files are not sensitive path is validated upstream, not user-controlled
 }
 
 func parseIndex(path string) ([]StackMeta, error) {
